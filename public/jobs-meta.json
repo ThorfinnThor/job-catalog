@@ -1,5 +1,9 @@
 {
-  "scrapedAt": null,
-  "total": 0,
-  "sources": {}
+  "scrapedAt": "2026-02-06T23:22:20.403Z",
+  "total": 5,
+  "sources": {
+    "biontech": 0,
+    "gsk": 0,
+    "immatics": 5
+  }
 }
