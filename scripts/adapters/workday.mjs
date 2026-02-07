@@ -7,20 +7,6 @@ import {
   normalizeEmploymentType
 } from "../lib/normalize.mjs";
 
-/**
- * Workday public "cxs" endpoints are the most stable way to scrape Workday.
- *
- * This version fixes:
- * 1) Human URL vs API URL:
- *    - url/applyUrl should point to the human job page:
- *      https://<host>/<site>/job/...
- *    - API detail JSON stays at:
- *      https://<host>/wday/cxs/<tenant>/<site>/job/...
- *
- * 2) Location extraction:
- *    - Prefer list endpoint fields
- *    - Fall back to job detail JSON jobPostingInfo fields
- */
 export async function scrapeWorkday({
   company,
   host,
@@ -31,44 +17,12 @@ export async function scrapeWorkday({
 }) {
   const scrapedAt = new Date().toISOString();
 
-  // Human-facing base (what users should see when clicking "View original posting")
-  // Example: https://immatics.wd3.myworkdayjobs.com/Immatics_External
-  const humanBase = company.careersUrl.replace(/\/+$/, "");
+  // Normalize human base (strip query/hash, no trailing slash)
+  const humanBase = normalizeBase(company.careersUrl);
 
   // API base
-  // Example: https://immatics.wd3.myworkdayjobs.com/wday/cxs/immatics/Immatics_External
-  const apiBase = `https://${host}/wday/cxs/${tenant}/${site}`.replace(/\/+$/, "");
-
+  const apiBase = normalizeBase(`https://${host}/wday/cxs/${tenant}/${site}`);
   const listEndpoint = `${apiBase}/jobs`;
-
-  async function getPage(offset, limit) {
-    // Variant A: GET with query params
-    const urlA = `${listEndpoint}?offset=${offset}&limit=${limit}&searchText=${encodeURIComponent(
-      searchText
-    )}`;
-    const a = await tryJson(urlA);
-    if (a?.jobPostings) return a;
-
-    // Variant B: POST with JSON body
-    const b = await tryPostJson(listEndpoint, {
-      appliedFacets: {},
-      searchText,
-      limit,
-      offset
-    });
-    if (b?.jobPostings) return b;
-
-    // Variant C: some tenants use "query" instead of "searchText"
-    const c = await tryPostJson(listEndpoint, {
-      appliedFacets: {},
-      query: searchText,
-      limit,
-      offset
-    });
-    if (c?.jobPostings) return c;
-
-    return null;
-  }
 
   async function tryJson(url) {
     try {
@@ -76,14 +30,6 @@ export async function scrapeWorkday({
         headers: { accept: "application/json,text/plain,*/*" }
       });
       return JSON.parse(txt);
-    } catch {
-      return null;
-    }
-  }
-
-  async function tryPostJson(url, body) {
-    try {
-      return await postJson(url, body);
     } catch {
       return null;
     }
@@ -106,37 +52,63 @@ export async function scrapeWorkday({
     return await res.json();
   }
 
+  async function getPage(offset, limit) {
+    // GET variant
+    const urlA = `${listEndpoint}?offset=${offset}&limit=${limit}&searchText=${encodeURIComponent(
+      searchText
+    )}`;
+    const a = await tryJson(urlA);
+    if (a?.jobPostings) return a;
+
+    // POST variant
+    const b = await postJson(listEndpoint, {
+      appliedFacets: {},
+      searchText,
+      limit,
+      offset
+    }).catch(() => null);
+    if (b?.jobPostings) return b;
+
+    // query variant
+    const c = await postJson(listEndpoint, {
+      appliedFacets: {},
+      query: searchText,
+      limit,
+      offset
+    }).catch(() => null);
+    if (c?.jobPostings) return c;
+
+    return null;
+  }
+
   async function getJobDetailJson(externalPath) {
-    // externalPath typically looks like: "/job/Tuebingen-Germany/Role-_JR123"
-    // Detail JSON is under API base:
-    //   https://host/wday/cxs/tenant/site + externalPath
+    // externalPath like "/job/City/Title_JR123"
     const apiDetailUrl = `${apiBase}${externalPath}`;
     return await tryJson(apiDetailUrl);
   }
 
   const jobs = [];
   const seen = new Set();
-
   let offset = 0;
   const limit = 20;
 
   while (jobs.length < max) {
     const page = await getPage(offset, limit);
-    if (!page || !Array.isArray(page.jobPostings) || page.jobPostings.length === 0) break;
+    if (!page?.jobPostings?.length) break;
 
     for (const jp of page.jobPostings) {
       const externalPath = cleanText(jp.externalPath || "");
       if (!externalPath.startsWith("/job/")) continue;
 
-      // ✅ Human URL (NOT the API URL)
-      const humanUrl = new URL(externalPath, `${humanBase}/`).toString();
+      // ✅ Correct human URL (keeps /site and locale if present in humanBase)
+      const humanUrl = `${humanBase}${externalPath}`;
 
       if (seen.has(humanUrl)) continue;
       seen.add(humanUrl);
 
       const title = cleanText(jp.title) || "Unknown title";
 
-      // First attempt: list endpoint location fields
+      // List-level location (often incomplete)
       const listLoc = pickFirstNonEmpty([
         jp.locationsText,
         Array.isArray(jp.locations) ? jp.locations.join(", ") : "",
@@ -144,33 +116,28 @@ export async function scrapeWorkday({
         jp.primaryLocation
       ]);
 
-      // Fetch detail JSON to improve location + description robustness
-      let detail = null;
-      let detailLocation = null;
+      // Detail JSON for better location + description
       let descriptionText = null;
+      let detailLoc = null;
       let postedAt = safeIsoDate(jp?.postedOn ?? jp?.postedDate ?? null);
 
       try {
-        detail = await getJobDetailJson(externalPath);
+        const detail = await getJobDetailJson(externalPath);
         if (detail?.jobPostingInfo) {
           descriptionText = stripHtml(detail.jobPostingInfo.jobDescription || "");
-
-          // Workday detail location fields can vary by tenant
-          detailLocation = extractLocationFromDetail(detail.jobPostingInfo);
-
-          // Some tenants include posted date in detail
+          detailLoc = extractLocationFromDetail(detail.jobPostingInfo);
           postedAt = postedAt || safeIsoDate(detail.jobPostingInfo?.postedOn ?? null);
         }
       } catch {
-        // ignore detail failure; keep list-only fields
+        // ignore
       }
 
-      const location = cleanText(detailLocation || listLoc) || null;
+      const location = cleanText(detailLoc || listLoc) || null;
 
-      // ID: prefer a Workday request / JR id if present, otherwise stable by URL
       const jr =
-        (Array.isArray(jp.bulletFields) ? jp.bulletFields.find((x) => String(x).startsWith("JR")) : null) ||
-        null;
+        (Array.isArray(jp.bulletFields)
+          ? jp.bulletFields.find((x) => String(x).startsWith("JR"))
+          : null) || null;
 
       jobs.push({
         id: jr ? `workday:${jr}` : `workday:${Buffer.from(humanUrl).toString("base64url")}`,
@@ -181,14 +148,9 @@ export async function scrapeWorkday({
         employmentType: normalizeEmploymentType(jp?.timeType ?? jp?.categoriesText ?? ""),
         department: cleanText(jp?.jobFamily ?? jp?.category ?? "") || null,
         team: null,
-
-        // ✅ user-facing URL
-        url: humanUrl,
-        applyUrl: humanUrl,
-
-        // ✅ description from detail JSON (cleaned)
+        url: humanUrl,      // ✅ not /wday/cxs/...
+        applyUrl: humanUrl, // ✅ not /wday/cxs/...
         description: { text: descriptionText || null, html: null },
-
         source: { kind: "workday_api", raw: { externalPath } },
         postedAt,
         scrapedAt
@@ -202,6 +164,14 @@ export async function scrapeWorkday({
   return jobs;
 }
 
+function normalizeBase(u) {
+  const url = new URL(u);
+  url.search = "";
+  url.hash = "";
+  // remove trailing slash
+  return url.toString().replace(/\/+$/, "");
+}
+
 function pickFirstNonEmpty(values) {
   for (const v of values) {
     const s = cleanText(v || "");
@@ -210,57 +180,31 @@ function pickFirstNonEmpty(values) {
   return "";
 }
 
-/**
- * Extract a useful location string from Workday jobPostingInfo.
- * Tenants differ, so we try multiple patterns.
- */
 function extractLocationFromDetail(info) {
-  // Common patterns: string fields
-  const direct = pickFirstNonEmpty([
-    info.location,
-    info.locationsText,
-    info.primaryLocation
-  ]);
+  const direct = pickFirstNonEmpty([info.location, info.locationsText, info.primaryLocation]);
   if (direct) return direct;
 
-  // Sometimes locations are arrays of strings
   if (Array.isArray(info.locations) && info.locations.length) {
     return cleanText(info.locations.join(", "));
   }
 
-  // Sometimes locations are arrays of objects
-  // Try typical keys
   const objArrays = [info.additionalLocations, info.jobLocations, info.locations];
   for (const arr of objArrays) {
     if (!Array.isArray(arr) || arr.length === 0) continue;
-
     const parts = arr
       .map((x) => {
         if (!x) return "";
         if (typeof x === "string") return x;
-        return (
-          x.displayName ||
-          x.location ||
-          x.city ||
-          x.name ||
-          ""
-        );
+        return x.displayName || x.location || x.city || x.name || "";
       })
       .map((s) => cleanText(s))
       .filter(Boolean);
-
     if (parts.length) return parts.join(", ");
   }
 
-  // Sometimes location is a nested object
   const locObj = info.jobRequisitionLocation || info.primaryLocationObject || null;
   if (locObj && typeof locObj === "object") {
-    const parts = [
-      locObj.displayName,
-      locObj.city,
-      locObj.country,
-      locObj.name
-    ]
+    const parts = [locObj.displayName, locObj.city, locObj.country, locObj.name]
       .map((s) => cleanText(s || ""))
       .filter(Boolean);
     if (parts.length) return parts.join(", ");
