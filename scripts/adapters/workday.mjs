@@ -17,18 +17,13 @@ export async function scrapeWorkday({
 }) {
   const scrapedAt = new Date().toISOString();
 
-  // Normalize human base (strip query/hash, no trailing slash)
   const humanBase = normalizeBase(company.careersUrl);
-
-  // API base
   const apiBase = normalizeBase(`https://${host}/wday/cxs/${tenant}/${site}`);
   const listEndpoint = `${apiBase}/jobs`;
 
   async function tryJson(url) {
     try {
-      const txt = await fetchText(url, {
-        headers: { accept: "application/json,text/plain,*/*" }
-      });
+      const txt = await fetchText(url, { headers: { accept: "application/json,text/plain,*/*" } });
       return JSON.parse(txt);
     } catch {
       return null;
@@ -53,36 +48,20 @@ export async function scrapeWorkday({
   }
 
   async function getPage(offset, limit) {
-    // GET variant
-    const urlA = `${listEndpoint}?offset=${offset}&limit=${limit}&searchText=${encodeURIComponent(
-      searchText
-    )}`;
+    const urlA = `${listEndpoint}?offset=${offset}&limit=${limit}&searchText=${encodeURIComponent(searchText)}`;
     const a = await tryJson(urlA);
     if (a?.jobPostings) return a;
 
-    // POST variant
-    const b = await postJson(listEndpoint, {
-      appliedFacets: {},
-      searchText,
-      limit,
-      offset
-    }).catch(() => null);
+    const b = await postJson(listEndpoint, { appliedFacets: {}, searchText, limit, offset }).catch(() => null);
     if (b?.jobPostings) return b;
 
-    // query variant
-    const c = await postJson(listEndpoint, {
-      appliedFacets: {},
-      query: searchText,
-      limit,
-      offset
-    }).catch(() => null);
+    const c = await postJson(listEndpoint, { appliedFacets: {}, query: searchText, limit, offset }).catch(() => null);
     if (c?.jobPostings) return c;
 
     return null;
   }
 
   async function getJobDetailJson(externalPath) {
-    // externalPath like "/job/City/Title_JR123"
     const apiDetailUrl = `${apiBase}${externalPath}`;
     return await tryJson(apiDetailUrl);
   }
@@ -100,7 +79,7 @@ export async function scrapeWorkday({
       const externalPath = cleanText(jp.externalPath || "");
       if (!externalPath.startsWith("/job/")) continue;
 
-      // ✅ Correct human URL (keeps /site and locale if present in humanBase)
+      // ✅ Correct human URL (keeps /site and locale because it’s in humanBase)
       const humanUrl = `${humanBase}${externalPath}`;
 
       if (seen.has(humanUrl)) continue;
@@ -108,7 +87,6 @@ export async function scrapeWorkday({
 
       const title = cleanText(jp.title) || "Unknown title";
 
-      // List-level location (often incomplete)
       const listLoc = pickFirstNonEmpty([
         jp.locationsText,
         Array.isArray(jp.locations) ? jp.locations.join(", ") : "",
@@ -116,7 +94,6 @@ export async function scrapeWorkday({
         jp.primaryLocation
       ]);
 
-      // Detail JSON for better location + description
       let descriptionText = null;
       let detailLoc = null;
       let postedAt = safeIsoDate(jp?.postedOn ?? jp?.postedDate ?? null);
@@ -125,7 +102,7 @@ export async function scrapeWorkday({
         const detail = await getJobDetailJson(externalPath);
         if (detail?.jobPostingInfo) {
           descriptionText = stripHtml(detail.jobPostingInfo.jobDescription || "");
-          detailLoc = extractLocationFromDetail(detail.jobPostingInfo);
+          detailLoc = extractLocationsFromDetail(detail.jobPostingInfo);
           postedAt = postedAt || safeIsoDate(detail.jobPostingInfo?.postedOn ?? null);
         }
       } catch {
@@ -148,8 +125,8 @@ export async function scrapeWorkday({
         employmentType: normalizeEmploymentType(jp?.timeType ?? jp?.categoriesText ?? ""),
         department: cleanText(jp?.jobFamily ?? jp?.category ?? "") || null,
         team: null,
-        url: humanUrl,      // ✅ not /wday/cxs/...
-        applyUrl: humanUrl, // ✅ not /wday/cxs/...
+        url: humanUrl,
+        applyUrl: humanUrl,
         description: { text: descriptionText || null, html: null },
         source: { kind: "workday_api", raw: { externalPath } },
         postedAt,
@@ -168,7 +145,6 @@ function normalizeBase(u) {
   const url = new URL(u);
   url.search = "";
   url.hash = "";
-  // remove trailing slash
   return url.toString().replace(/\/+$/, "");
 }
 
@@ -180,17 +156,25 @@ function pickFirstNonEmpty(values) {
   return "";
 }
 
-function extractLocationFromDetail(info) {
-  const direct = pickFirstNonEmpty([info.location, info.locationsText, info.primaryLocation]);
+/**
+ * Returns a single string including ALL locations:
+ * - handles locationsText with newlines
+ * - handles arrays of strings/objects
+ */
+function extractLocationsFromDetail(info) {
+  // 1) locationsText often contains newline-separated locations
+  const lt = cleanText(String(info.locationsText || "").replace(/\n+/g, ", "));
+  if (lt) return lt;
+
+  // 2) direct string
+  const direct = cleanText(info.location || info.primaryLocation || "");
   if (direct) return direct;
 
-  if (Array.isArray(info.locations) && info.locations.length) {
-    return cleanText(info.locations.join(", "));
-  }
-
-  const objArrays = [info.additionalLocations, info.jobLocations, info.locations];
-  for (const arr of objArrays) {
+  // 3) arrays
+  const arrays = [info.additionalLocations, info.jobLocations, info.locations];
+  for (const arr of arrays) {
     if (!Array.isArray(arr) || arr.length === 0) continue;
+
     const parts = arr
       .map((x) => {
         if (!x) return "";
@@ -199,9 +183,11 @@ function extractLocationFromDetail(info) {
       })
       .map((s) => cleanText(s))
       .filter(Boolean);
+
     if (parts.length) return parts.join(", ");
   }
 
+  // 4) nested object
   const locObj = info.jobRequisitionLocation || info.primaryLocationObject || null;
   if (locObj && typeof locObj === "object") {
     const parts = [locObj.displayName, locObj.city, locObj.country, locObj.name]
