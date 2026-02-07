@@ -6,7 +6,7 @@ import { createLimiter } from "./lib/limit.mjs";
 
 import { scrapeSapHtml } from "./adapters/sap-html.mjs";
 import { scrapeWorkday } from "./adapters/workday.mjs";
-import { isEnglishOrGermanDescription } from "./lib/desc-lang.mjs";
+import { classifyDescLang } from "./lib/desc-lang.mjs";
 
 function isJobValid(job) {
   return Boolean(cleanText(job.title) && job.url && job.company?.id);
@@ -38,9 +38,28 @@ async function scrapeOneSite(site) {
   throw new Error(`Unknown site.kind: ${site.kind}`);
 }
 
+function countByCompany(jobs) {
+  const out = {};
+  for (const j of jobs) {
+    const id = j?.company?.id || "unknown";
+    out[id] = (out[id] || 0) + 1;
+  }
+  return out;
+}
+
+function countLangBuckets(jobs) {
+  const out = { en: 0, de: 0, other: 0, unknown: 0 };
+  for (const j of jobs) {
+    const desc = j?.description?.text || "";
+    const lang = classifyDescLang(desc);
+    out[lang] = (out[lang] || 0) + 1;
+  }
+  return out;
+}
+
 async function main() {
   const all = [];
-  const sourceCounts = {};
+  const sourceCountsBeforeFilter = {};
   const limit = createLimiter(2);
 
   for (const site of sites) {
@@ -49,27 +68,35 @@ async function main() {
       const jobs = await limit(async () => await scrapeOneSite(site));
       const good = jobs.filter(isJobValid);
 
-      console.log(`  -> ${good.length} jobs`);
-      sourceCounts[site.company.id] = good.length;
+      console.log(`  -> scraped valid jobs: ${good.length}`);
+      sourceCountsBeforeFilter[site.company.id] = good.length;
       all.push(...good);
     } catch (e) {
       console.error(`  !! failed: ${e.message}`);
-      sourceCounts[site.company.id] = 0;
+      sourceCountsBeforeFilter[site.company.id] = 0;
     }
   }
 
-  // Dedupe
   let jobs = uniqById(all);
 
-  // ✅ Filter: keep only jobs whose descriptions are English or German
   const before = jobs.length;
+  const beforeByCompany = countByCompany(jobs);
+  const beforeLang = countLangBuckets(jobs);
+
+  // ✅ Filter rule:
+  // - If a job is confidently "other" => remove
+  // - If "en" or "de" => keep
+  // - If "unknown" (can't tell) => keep
   jobs = jobs.filter((j) => {
     const desc = j?.description?.text || "";
-    return isEnglishOrGermanDescription(desc);
+    const lang = classifyDescLang(desc);
+    return lang !== "other";
   });
-  const after = jobs.length;
 
-  // Sort for stable output
+  const after = jobs.length;
+  const afterByCompany = countByCompany(jobs);
+  const afterLang = countLangBuckets(jobs);
+
   jobs = jobs.sort((a, b) => {
     return a.company.name.localeCompare(b.company.name) || a.title.localeCompare(b.title);
   });
@@ -79,8 +106,13 @@ async function main() {
     total: jobs.length,
     totalBeforeLangFilter: before,
     totalAfterLangFilter: after,
-    langFilter: ["en", "de"],
-    sources: sourceCounts
+    langFilterKeep: ["en", "de", "unknown"],
+    langFilterDrop: ["other"],
+    sourcesBeforeFilter: sourceCountsBeforeFilter,
+    byCompanyBeforeLangFilter: beforeByCompany,
+    byCompanyAfterLangFilter: afterByCompany,
+    langBucketsBefore: beforeLang,
+    langBucketsAfter: afterLang
   };
 
   await writeFile("public/jobs.json", JSON.stringify(jobs, null, 2));
@@ -88,6 +120,8 @@ async function main() {
   await writeFile("public/jobs-meta.json", JSON.stringify(meta, null, 2));
 
   console.log(`Done. Wrote ${jobs.length} jobs (before lang filter: ${before}).`);
+  console.log("Lang buckets after filter:", afterLang);
+  console.log("By company after filter:", afterByCompany);
 }
 
 main().catch((e) => {
