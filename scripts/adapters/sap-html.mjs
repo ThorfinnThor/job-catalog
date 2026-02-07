@@ -2,10 +2,6 @@ import * as cheerio from "cheerio";
 import { fetchTextWithCookies } from "../lib/http.mjs";
 import { absoluteUrl, cleanText } from "../lib/normalize.mjs";
 
-/**
- * SAP / SuccessFactors-style HTML job board adapter.
- * Fix: robust location extraction (meta line not always next sibling of H1).
- */
 export async function scrapeSapHtml({
   company,
   pageSize = 100,
@@ -17,7 +13,7 @@ export async function scrapeSapHtml({
   let cookieJar = "";
   const jobLinks = new Set();
 
-  // ---- 1) LIST PAGINATION via startrow ----
+  // ---- LIST PAGINATION ----
   for (let start = 0; start <= maxStart; start += pageSize) {
     const url = new URL(company.careersUrl);
     url.searchParams.set("startrow", String(start));
@@ -41,7 +37,7 @@ export async function scrapeSapHtml({
     if (anchors.length === 0) break;
   }
 
-  // ---- 2) DETAIL SCRAPE ----
+  // ---- DETAIL SCRAPE ----
   const jobs = [];
 
   for (const jobUrl of jobLinks) {
@@ -51,25 +47,21 @@ export async function scrapeSapHtml({
 
       const $ = cheerio.load(jobHtml);
 
-      // Remove scripts/styles and obvious boilerplate before extraction
       stripNoise($);
 
       const title = cleanText($("h1").first().text()) || "Unknown title";
 
-      // Robust: location may be in a meta line elsewhere, not just next sibling
-      const { location, metaLine } = extractSapMeta($);
+      const meta = extractSapLocationAndMetaLine($);
+      const location = meta.location;
 
-      // Description (same as your cleaned approach)
       const descriptionText = extractJobDescriptionText($);
 
-      // Stable ID: prefer "Job ID: 12345" if present, otherwise base64 of URL
       const jobIdMatch = jobHtml.match(/Job ID\\s*:\\s*([0-9]+)/i);
       const jobId = jobIdMatch ? jobIdMatch[1] : null;
       const id = jobId
         ? `${company.id}:${jobId}`
         : `${company.id}_url:${Buffer.from(jobUrl).toString("base64url")}`;
 
-      // Apply link (optional)
       const applyHref =
         $("a:contains('Apply now')").first().attr("href") ||
         $("a:contains('Apply Now')").first().attr("href") ||
@@ -82,7 +74,7 @@ export async function scrapeSapHtml({
         title,
         location,
         workplace: null,
-        employmentType: /full\\s*time/i.test(metaLine) ? "full_time" : null,
+        employmentType: /full\\s*time/i.test(meta.metaLine) ? "full_time" : null,
         department: null,
         team: null,
         url: jobUrl,
@@ -101,13 +93,12 @@ export async function scrapeSapHtml({
   return jobs;
 }
 
-/** --- Helpers --- */
-
+/** Remove page chrome + scripts/styles (keep content + sidebar text). */
 function stripNoise($) {
   $("script, style, noscript").remove();
   $("header, nav, footer").remove();
 
-  // Cookie/consent containers
+  // Cookie/consent blocks
   $(
     [
       "#onetrust-consent-sdk",
@@ -123,70 +114,103 @@ function stripNoise($) {
 }
 
 /**
- * Extract location from SuccessFactors meta line.
- * On these pages, the meta line often looks like:
- *   "Mainz, Germany | full time | Job ID: 1249417301"
- * but can be in a different container than "h1.next()".
+ * Location extraction tuned to screenshots:
+ * - BioNTech: "Mainz, Germany | full time | Job ID: ..."
+ * - Boehringer: sidebar "Primary location" -> "Ingelheim, Germany"
  */
-function extractSapMeta($) {
-  const titleEl = $("h1").first();
+function extractSapLocationAndMetaLine($) {
+  // 1) BioNTech-style meta line (pipes) – scan near title first
+  const h1 = $("h1").first();
+  const nearTitle = cleanText(h1.parent().text());
+  const fromNear = parsePipeMetaLine(nearTitle);
+  if (fromNear?.location) return fromNear;
 
-  // 1) Try common “location/meta” selectors
+  // Sometimes meta line is a sibling block, not in parent
+  const siblingText = cleanText(h1.parent().nextAll().slice(0, 3).text());
+  const fromSib = parsePipeMetaLine(siblingText);
+  if (fromSib?.location) return fromSib;
+
+  // 2) Boehringer-style "Primary location" label in sidebar
+  // Extract from overall visible text (after stripNoise)
+  const mainText = cleanText(($("main").text() || $("body").text()).slice(0, 6000));
+  const primary = extractAfterLabel(mainText, [
+    "Primary location",
+    "Primary Location",
+    "Primärer Standort",
+    "Primaerer Standort"
+  ]);
+  if (primary) {
+    return { location: primary, metaLine: `Primary location: ${primary}` };
+  }
+
+  // 3) Fallback: any location-ish selectors (low risk)
   const selectorCandidates = [
     ".jobGeoLocation",
     ".job-location",
     ".jobLocation",
-    "[data-testid*=location]",
-    "[class*=location]",
-    "[id*=location]"
+    "[data-testid*=location]"
   ];
-
   for (const sel of selectorCandidates) {
     const t = cleanText($(sel).first().text());
-    // Ignore junk like "Location All"
-    if (t && t.length < 120 && !t.toLowerCase().includes("location all")) {
-      return { location: t, metaLine: t };
-    }
+    if (t && t.length <= 120) return { location: t, metaLine: t };
   }
 
-  // 2) Try to find a meta line near the title block (parent/siblings)
-  const nearTitleText = cleanText(
-    titleEl.parent().text() + " " + titleEl.parent().siblings().text()
-  );
-
-  const locFromNear = parseLocationFromMetaLine(nearTitleText);
-  if (locFromNear) return { location: locFromNear.location, metaLine: locFromNear.metaLine };
-
-  // 3) Fallback: scan the top of main/body text for the first meta line
-  const topText = cleanText($("main").text() || $("body").text()).slice(0, 3000);
-  const locFromTop = parseLocationFromMetaLine(topText);
-  if (locFromTop) return { location: locFromTop.location, metaLine: locFromTop.metaLine };
+  // 4) Last resort: scan top of page text for pipe meta line
+  const topText = cleanText(($("body").text() || "").slice(0, 4000));
+  const fromTop = parsePipeMetaLine(topText);
+  if (fromTop?.location) return fromTop;
 
   return { location: null, metaLine: "" };
 }
 
-function parseLocationFromMetaLine(text) {
+function parsePipeMetaLine(text) {
   const t = cleanText(text);
   if (!t) return null;
 
-  // Look for: "<location> | <something>"
-  // where <something> could be "full time", "part time", or "Job ID"
+  // Matches: "<location> | <something> | Job ID"
+  // Location often looks like: "Mainz, Germany"
   const m = t.match(
-    /(.{3,120}?)\\s*\\|\\s*(full\\s*time|part\\s*time|contract|internship|temporary|job\\s*id)/i
+    /(.{3,120}?)\\s*\\|\\s*(full\\s*time|part\\s*time|contract|internship|temporary)\\s*\\|\\s*job\\s*id/i
   );
   if (!m) return null;
 
-  // Clean up location fragment
-  let loc = cleanText(m[1]);
+  const loc = cleanText(m[1]);
+  if (!loc) return null;
 
-  // Remove common leading noise
-  loc = loc.replace(/^apply now\\s*»\\s*/i, "").trim();
-  loc = loc.replace(/^loading\\.+\\s*/i, "").trim();
+  return { location: loc, metaLine: cleanText(m[0]) };
+}
 
-  // If location still looks like navigation garbage, reject
-  if (!loc || loc.toLowerCase().includes("skip to main content")) return null;
+/**
+ * Extract value after a label in a "sidebar" text block.
+ * Example input text contains:
+ * "Primary location Ingelheim, Germany Job function Marketing, Sales ..."
+ */
+function extractAfterLabel(text, labels) {
+  const t = cleanText(text);
+  if (!t) return null;
 
-  return { location: loc || null, metaLine: cleanText(m[0]) };
+  for (const label of labels) {
+    const re = new RegExp(`${escapeRe(label)}\\s+(.{3,120}?)\\s+(Job ID|Job function|Career level|Organization|Working time|Job flexibility|Tasks|The Position|Requirements|Apply)`, "i");
+    const m = t.match(re);
+    if (m && m[1]) return cleanText(m[1]);
+  }
+
+  // Fallback: grab until end of sentence if sidebar structure differs
+  for (const label of labels) {
+    const re = new RegExp(`${escapeRe(label)}\\s+([^\\n\\r]{3,120})`, "i");
+    const m = t.match(re);
+    if (m && m[1]) {
+      const val = cleanText(m[1]);
+      // avoid capturing too much
+      if (val.length <= 80) return val;
+    }
+  }
+
+  return null;
+}
+
+function escapeRe(s) {
+  return String(s).replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&");
 }
 
 function extractJobDescriptionText($) {
@@ -203,18 +227,17 @@ function extractJobDescriptionText($) {
     const el = $(sel).first();
     if (el && el.length) {
       const t = cleanText(el.text());
-      if (t && t.length > 200) return postProcessDescription(t);
+      if (t && t.length > 300) return postProcessDescription(t);
     }
   }
 
   const bodyText = cleanText($("body").text());
-  return bodyText && bodyText.length > 200 ? postProcessDescription(bodyText) : null;
+  return bodyText && bodyText.length > 300 ? postProcessDescription(bodyText) : null;
 }
 
 function postProcessDescription(t) {
   let out = t;
 
-  // Cut off common footer/legal blocks
   const cutMarkers = [
     "find similar jobs",
     "terms of use",
