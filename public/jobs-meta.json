@@ -1,16 +1,40 @@
 {
-  "scrapedAt": "2026-02-07T22:20:37.713Z",
-  "total": 513,
-  "totalBeforeLangFilter": 515,
-  "totalAfterLangFilter": 513,
-  "langFilter": [
+  "scrapedAt": "2026-02-07T22:38:26.450Z",
+  "total": 506,
+  "totalBeforeLangFilter": 509,
+  "totalAfterLangFilter": 506,
+  "langFilterKeep": [
     "en",
-    "de"
+    "de",
+    "unknown"
   ],
-  "sources": {
+  "langFilterDrop": [
+    "other"
+  ],
+  "sourcesBeforeFilter": {
     "biontech": 0,
     "boehringer": 0,
     "immatics": 5,
-    "gsk": 510
+    "gsk": 504
+  },
+  "byCompanyBeforeLangFilter": {
+    "immatics": 5,
+    "gsk": 504
+  },
+  "byCompanyAfterLangFilter": {
+    "immatics": 5,
+    "gsk": 501
+  },
+  "langBucketsBefore": {
+    "en": 494,
+    "de": 12,
+    "other": 3,
+    "unknown": 0
+  },
+  "langBucketsAfter": {
+    "en": 494,
+    "de": 12,
+    "other": 0,
+    "unknown": 0
   }
 }
