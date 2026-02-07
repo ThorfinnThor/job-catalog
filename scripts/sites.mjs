@@ -9,13 +9,18 @@ export const sites = [
     kind: "biontech_html"
   },
   {
-    company: {
-      id: "gsk",
-      name: "GSK",
-      careersUrl: "https://jobs.gsk.com/en-gb/jobs?location=Germany&page=1"
-    },
-    kind: "gsk_playwright"
+  company: {
+    id: "gsk",
+    name: "GSK",
+    careersUrl: "https://gsk.wd5.myworkdayjobs.com/GSKCareers"
   },
+  kind: "workday",
+  workday: {
+    host: "gsk.wd5.myworkdayjobs.com",
+    tenant: "gsk",
+    site: "GSKCareers"
+  }
+},
   {
     company: {
       id: "immatics",
