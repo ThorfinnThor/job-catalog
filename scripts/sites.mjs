@@ -1,4 +1,5 @@
 export const sites = [
+  // SAP / SuccessFactors HTML boards
   {
     company: {
       id: "biontech",
@@ -8,7 +9,6 @@ export const sites = [
     kind: "sap_html",
     sap: { pageSize: 100, maxStart: 5000 }
   },
-
   {
     company: {
       id: "boehringer",
@@ -19,6 +19,7 @@ export const sites = [
     sap: { pageSize: 100, maxStart: 5000 }
   },
 
+  // Workday boards
   {
     company: {
       id: "immatics",
@@ -32,7 +33,6 @@ export const sites = [
       site: "Immatics_External"
     }
   },
-
   {
     company: {
       id: "gsk",
