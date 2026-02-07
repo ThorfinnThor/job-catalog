@@ -4,9 +4,8 @@ import { toCsv } from "./lib/csv.mjs";
 import { cleanText } from "./lib/normalize.mjs";
 import { createLimiter } from "./lib/limit.mjs";
 
-import { scrapeBiontech } from "./adapters/biontech.mjs";
+import { scrapeSapHtml } from "./adapters/sap-html.mjs";
 import { scrapeWorkday } from "./adapters/workday.mjs";
-import { scrapeGskPlaywright } from "./adapters/gsk-playwright.mjs";
 
 function isJobValid(job) {
   return Boolean(cleanText(job.title) && job.url && job.company?.id);
@@ -17,8 +16,12 @@ function uniqById(items) {
 }
 
 async function scrapeOneSite(site) {
-  if (site.kind === "biontech_html") {
-    return await scrapeBiontech({ company: site.company });
+  if (site.kind === "sap_html") {
+    return await scrapeSapHtml({
+      company: site.company,
+      pageSize: site.sap?.pageSize ?? 100,
+      maxStart: site.sap?.maxStart ?? 5000
+    });
   }
 
   if (site.kind === "workday") {
@@ -31,28 +34,6 @@ async function scrapeOneSite(site) {
     });
   }
 
-  if (site.kind === "gsk_playwright") {
-    // 1) Try jobs.gsk.com via Playwright
-    const pw = await scrapeGskPlaywright({ company: site.company, startUrl: site.company.careersUrl });
-    const pwGood = pw.filter(isJobValid);
-
-    if (pwGood.length > 0) return pwGood;
-
-    console.warn("[gsk] Playwright returned 0 jobs; falling back to Workday CXS feed…");
-
-    // 2) Fallback to GSK Workday (much more bot-friendly)
-    // NOTE: this is a pragmatic workaround when jobs.gsk.com blocks CI runners.
-    const wdJobs = await scrapeWorkday({
-      company: site.company,
-      host: "gsk.wd5.myworkdayjobs.com",
-      tenant: "gsk",
-      site: "GSKCareers"
-    });
-
-    // filter to Germany, since your original GSK URL was Germany-filtered
-    return wdJobs.filter((j) => (j.location || "").toLowerCase().includes("germany"));
-  }
-
   throw new Error(`Unknown site.kind: ${site.kind}`);
 }
 
@@ -60,10 +41,11 @@ async function main() {
   const all = [];
   const sourceCounts = {};
 
-  const limit = createLimiter(2);
+  const limit = createLimiter(2); // keep it polite; adapters may hit many pages
 
   for (const site of sites) {
     console.log(`Scraping: ${site.company.name} (${site.kind})`);
+
     try {
       const jobs = await limit(async () => await scrapeOneSite(site));
       const good = jobs.filter(isJobValid);
