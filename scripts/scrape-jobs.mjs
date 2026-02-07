@@ -16,22 +16,12 @@ function uniqById(items) {
   return Array.from(new Map(items.map((x) => [x.id, x])).values());
 }
 
-function countByCompany(jobs) {
-  const out = {};
-  for (const j of jobs) {
-    const id = j?.company?.id || "unknown";
-    out[id] = (out[id] || 0) + 1;
-  }
-  return out;
-}
-
 async function scrapeOneSite(site) {
-  // ✅ Backward-compatible aliases for SAP/SuccessFactors boards
   if (site.kind === "sap_html" || site.kind === "biontech_html" || site.kind === "sap") {
     return await scrapeSapHtml({
       company: site.company,
-      pageSize: site.sap?.pageSize ?? site.pageSize ?? 100,
-      maxStart: site.sap?.maxStart ?? site.maxStart ?? 5000
+      pageSize: site.sap?.pageSize ?? 100,
+      maxStart: site.sap?.maxStart ?? 5000
     });
   }
 
@@ -48,6 +38,15 @@ async function scrapeOneSite(site) {
   throw new Error(`Unknown site.kind: ${site.kind}`);
 }
 
+function countByCompany(jobs) {
+  const out = {};
+  for (const j of jobs) {
+    const id = j?.company?.id || "unknown";
+    out[id] = (out[id] || 0) + 1;
+  }
+  return out;
+}
+
 async function main() {
   const all = [];
   const scrapedValidByCompany = {};
@@ -55,7 +54,6 @@ async function main() {
 
   for (const site of sites) {
     console.log(`Scraping: ${site.company.name} (${site.kind})`);
-
     try {
       const jobs = await limit(async () => await scrapeOneSite(site));
       const good = jobs.filter(isJobValid);
@@ -69,22 +67,26 @@ async function main() {
     }
   }
 
-  // Dedupe
+  // ✅ HARD FAIL if SAP sources are empty (prevents silent bad deploys)
+  const required = ["biontech", "boehringer"];
+  const missing = required.filter((id) => (scrapedValidByCompany[id] || 0) === 0);
+  if (missing.length) {
+    throw new Error(
+      `One or more required sources produced 0 jobs: ${missing.join(
+        ", "
+      )}. Check public/debug-<company>-list.html in the repo for the HTML GitHub Actions received.`
+    );
+  }
+
   let jobs = uniqById(all);
 
-  const before = jobs.length;
-  const beforeByCompany = countByCompany(jobs);
-
-  // ✅ Language filter rule:
-  // Drop ONLY if confidently "other". Keep en/de/unknown.
+  // Keep EN/DE/unknown; drop only confident "other"
   jobs = jobs.filter((j) => {
     const desc = j?.description?.text || "";
-    const lang = classifyDescLang(desc);
-    return lang !== "other";
+    return classifyDescLang(desc) !== "other";
   });
 
-  const after = jobs.length;
-  const afterByCompany = countByCompany(jobs);
+  const byCompanyAfter = countByCompany(jobs);
 
   jobs = jobs.sort((a, b) => {
     return a.company.name.localeCompare(b.company.name) || a.title.localeCompare(b.title);
@@ -93,21 +95,16 @@ async function main() {
   const meta = {
     scrapedAt: new Date().toISOString(),
     total: jobs.length,
-    totalBeforeLangFilter: before,
-    totalAfterLangFilter: after,
-    langFilterKeep: ["en", "de", "unknown"],
-    langFilterDrop: ["other"],
     scrapedValidByCompany,
-    byCompanyBeforeLangFilter: beforeByCompany,
-    byCompanyAfterLangFilter: afterByCompany
+    byCompanyAfterFilter: byCompanyAfter
   };
 
   await writeFile("public/jobs.json", JSON.stringify(jobs, null, 2));
   await writeFile("public/jobs.csv", toCsv(jobs));
   await writeFile("public/jobs-meta.json", JSON.stringify(meta, null, 2));
 
-  console.log(`Done. Wrote ${jobs.length} jobs (before lang filter: ${before}).`);
-  console.log("By company after filter:", afterByCompany);
+  console.log("By company after filter:", byCompanyAfter);
+  console.log(`Done. Wrote ${jobs.length} jobs.`);
 }
 
 main().catch((e) => {
