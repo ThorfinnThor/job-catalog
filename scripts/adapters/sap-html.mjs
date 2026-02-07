@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { writeFile } from "node:fs/promises";
 import { fetchTextWithCookies } from "../lib/http.mjs";
 import { absoluteUrl, cleanText } from "../lib/normalize.mjs";
 
@@ -25,12 +26,32 @@ export async function scrapeSapHtml({
 
     const $ = cheerio.load(listHtml);
 
-    const anchors = $("a[href*='/job/']");
+    // More permissive link extraction
+    const linkSelectors = [
+      "a[href*='/job/']",
+      "a[href^='/job/']",
+      "a[href*='job/']",
+      "a[href*='?jobId=']"
+    ];
+
+    const anchors = $(linkSelectors.join(","));
     anchors.each((_, el) => {
       const href = $(el).attr("href");
       const full = absoluteUrl(company.careersUrl, href);
-      if (full && full.includes("/job/")) jobLinks.add(full);
+      if (!full) return;
+
+      // Normalize: accept typical successfactors job paths
+      if (full.includes("/job/") || full.includes("?jobId=")) jobLinks.add(full);
     });
+
+    // If first page yields no links, dump debug HTML so you can inspect what the runner got
+    if (start === 0 && jobLinks.size === 0) {
+      await writeFile(`public/debug-${company.id}-list.html`, listHtml);
+      console.error(
+        `[${company.id}] ERROR: no job links found on first list page. Wrote public/debug-${company.id}-list.html`
+      );
+      break; // no point paginating if page 0 has none
+    }
 
     const after = jobLinks.size;
     if (stopAfterNoNewLinks && after === before) break;
@@ -46,11 +67,11 @@ export async function scrapeSapHtml({
       if (cookies?.length) cookieJar = mergeCookies(cookieJar, cookies);
 
       const $ = cheerio.load(jobHtml);
-
       stripNoise($);
 
       const title = cleanText($("h1").first().text()) || "Unknown title";
 
+      // Location/meta line (BioNTech pipes + Boehringer "Primary location")
       const meta = extractSapLocationAndMetaLine($);
       const location = meta.location;
 
@@ -93,12 +114,10 @@ export async function scrapeSapHtml({
   return jobs;
 }
 
-/** Remove page chrome + scripts/styles (keep content + sidebar text). */
 function stripNoise($) {
   $("script, style, noscript").remove();
   $("header, nav, footer").remove();
 
-  // Cookie/consent blocks
   $(
     [
       "#onetrust-consent-sdk",
@@ -113,52 +132,22 @@ function stripNoise($) {
   ).remove();
 }
 
-/**
- * Location extraction tuned to screenshots:
- * - BioNTech: "Mainz, Germany | full time | Job ID: ..."
- * - Boehringer: sidebar "Primary location" -> "Ingelheim, Germany"
- */
 function extractSapLocationAndMetaLine($) {
-  // 1) BioNTech-style meta line (pipes) – scan near title first
-  const h1 = $("h1").first();
-  const nearTitle = cleanText(h1.parent().text());
-  const fromNear = parsePipeMetaLine(nearTitle);
-  if (fromNear?.location) return fromNear;
+  // BioNTech-style pipe line under title:
+  // "Mainz, Germany | full time | Job ID: 10606"
+  const bodyTop = cleanText(($("body").text() || "").slice(0, 6000));
+  const pipe = parsePipeMetaLine(bodyTop);
+  if (pipe?.location) return pipe;
 
-  // Sometimes meta line is a sibling block, not in parent
-  const siblingText = cleanText(h1.parent().nextAll().slice(0, 3).text());
-  const fromSib = parsePipeMetaLine(siblingText);
-  if (fromSib?.location) return fromSib;
-
-  // 2) Boehringer-style "Primary location" label in sidebar
-  // Extract from overall visible text (after stripNoise)
-  const mainText = cleanText(($("main").text() || $("body").text()).slice(0, 6000));
-  const primary = extractAfterLabel(mainText, [
+  // Boehringer-style sidebar:
+  // "Primary location Ingelheim, Germany"
+  const primary = extractAfterLabel(bodyTop, [
     "Primary location",
     "Primary Location",
     "Primärer Standort",
     "Primaerer Standort"
   ]);
-  if (primary) {
-    return { location: primary, metaLine: `Primary location: ${primary}` };
-  }
-
-  // 3) Fallback: any location-ish selectors (low risk)
-  const selectorCandidates = [
-    ".jobGeoLocation",
-    ".job-location",
-    ".jobLocation",
-    "[data-testid*=location]"
-  ];
-  for (const sel of selectorCandidates) {
-    const t = cleanText($(sel).first().text());
-    if (t && t.length <= 120) return { location: t, metaLine: t };
-  }
-
-  // 4) Last resort: scan top of page text for pipe meta line
-  const topText = cleanText(($("body").text() || "").slice(0, 4000));
-  const fromTop = parsePipeMetaLine(topText);
-  if (fromTop?.location) return fromTop;
+  if (primary) return { location: primary, metaLine: `Primary location: ${primary}` };
 
   return { location: null, metaLine: "" };
 }
@@ -166,44 +155,26 @@ function extractSapLocationAndMetaLine($) {
 function parsePipeMetaLine(text) {
   const t = cleanText(text);
   if (!t) return null;
-
-  // Matches: "<location> | <something> | Job ID"
-  // Location often looks like: "Mainz, Germany"
   const m = t.match(
     /(.{3,120}?)\\s*\\|\\s*(full\\s*time|part\\s*time|contract|internship|temporary)\\s*\\|\\s*job\\s*id/i
   );
   if (!m) return null;
-
   const loc = cleanText(m[1]);
   if (!loc) return null;
-
   return { location: loc, metaLine: cleanText(m[0]) };
 }
 
-/**
- * Extract value after a label in a "sidebar" text block.
- * Example input text contains:
- * "Primary location Ingelheim, Germany Job function Marketing, Sales ..."
- */
 function extractAfterLabel(text, labels) {
   const t = cleanText(text);
   if (!t) return null;
 
   for (const label of labels) {
-    const re = new RegExp(`${escapeRe(label)}\\s+(.{3,120}?)\\s+(Job ID|Job function|Career level|Organization|Working time|Job flexibility|Tasks|The Position|Requirements|Apply)`, "i");
+    const re = new RegExp(
+      `${escapeRe(label)}\\s+(.{3,120}?)\\s+(Job ID|Job function|Career level|Organization|Working time|Job flexibility|Tasks|The Position|Requirements|Apply)`,
+      "i"
+    );
     const m = t.match(re);
     if (m && m[1]) return cleanText(m[1]);
-  }
-
-  // Fallback: grab until end of sentence if sidebar structure differs
-  for (const label of labels) {
-    const re = new RegExp(`${escapeRe(label)}\\s+([^\\n\\r]{3,120})`, "i");
-    const m = t.match(re);
-    if (m && m[1]) {
-      const val = cleanText(m[1]);
-      // avoid capturing too much
-      if (val.length <= 80) return val;
-    }
   }
 
   return null;
@@ -237,7 +208,6 @@ function extractJobDescriptionText($) {
 
 function postProcessDescription(t) {
   let out = t;
-
   const cutMarkers = [
     "find similar jobs",
     "terms of use",
@@ -247,7 +217,6 @@ function postProcessDescription(t) {
     "cookie settings",
     "cookie consent manager"
   ];
-
   const lower = out.toLowerCase();
   let cutAt = -1;
   for (const m of cutMarkers) {
@@ -255,7 +224,6 @@ function postProcessDescription(t) {
     if (i >= 0) cutAt = cutAt < 0 ? i : Math.min(cutAt, i);
   }
   if (cutAt >= 0) out = out.slice(0, cutAt);
-
   return out.replace(/\\s+/g, " ").trim();
 }
 
