@@ -4,16 +4,7 @@ import { absoluteUrl, cleanText } from "../lib/normalize.mjs";
 
 /**
  * Generic SAP / SuccessFactors-style HTML job board adapter.
- *
- * Works well for portals like:
- * - https://jobs.biontech.com/search/
- * - https://jobs.boehringer-ingelheim.com/search/
- *
- * Strategy:
- * 1) Paginate list pages using startrow
- * 2) Extract job links from anchors containing "/job/"
- * 3) Visit each detail page and extract title, location, description
- * 4) Preserve cookies between requests to avoid session-related issues
+ * Improved: extracts ONLY the job content and strips scripts/CSS/cookie banners.
  */
 export async function scrapeSapHtml({
   company,
@@ -29,9 +20,6 @@ export async function scrapeSapHtml({
   // ---- 1) LIST PAGINATION via startrow ----
   for (let start = 0; start <= maxStart; start += pageSize) {
     const url = new URL(company.careersUrl);
-
-    // Ensure we're on a search/listing URL; if someone passes the main domain,
-    // this adapter expects careersUrl already points to /search/ (recommended).
     url.searchParams.set("startrow", String(start));
 
     const before = jobLinks.size;
@@ -41,8 +29,6 @@ export async function scrapeSapHtml({
 
     const $ = cheerio.load(listHtml);
 
-    // Job links usually contain /job/
-    // Example: /job/Mainz-.../1291168801/
     const anchors = $("a[href*='/job/']");
     anchors.each((_, el) => {
       const href = $(el).attr("href");
@@ -51,11 +37,7 @@ export async function scrapeSapHtml({
     });
 
     const after = jobLinks.size;
-
-    // Stop if this page didn't add new job links (common end condition).
     if (stopAfterNoNewLinks && after === before) break;
-
-    // If a page has no job links at all, stop early.
     if (anchors.length === 0) break;
   }
 
@@ -69,30 +51,28 @@ export async function scrapeSapHtml({
 
       const $ = cheerio.load(jobHtml);
 
+      // Remove script/style + obvious boilerplate containers BEFORE extracting text.
+      stripNoise($);
+
       const title = cleanText($("h1").first().text()) || "Unknown title";
 
-      // Many SAP boards have a line near the title like:
+      // SuccessFactors often has a small meta line near title:
       // "Mainz, Germany | full time | Job ID: 11010"
-      // We extract the first pipe-separated segment as location.
       const detailLine = cleanText($("h1").first().nextAll().first().text());
       const locPart = detailLine.split("|")[0]?.trim() || "";
       const location = cleanText(locPart) || null;
 
-      // Grab a big chunk of text; these pages are verbose but consistent.
-      // In MVP, plain body text works well.
-      let descriptionText = cleanText($("main").text());
-      if (!descriptionText) descriptionText = cleanText($("body").text());
-
-      // If page contains "About the role", start there to reduce boilerplate
-      const idx = descriptionText.toLowerCase().indexOf("about the role");
-      if (idx >= 0) descriptionText = descriptionText.slice(idx);
+      // Extract the job content from best candidates (in order).
+      const descriptionText = extractJobDescriptionText($);
 
       // Stable ID: prefer "Job ID: 12345" if present, otherwise base64 of URL
       const jobIdMatch = jobHtml.match(/Job ID\\s*:\\s*([0-9]+)/i);
       const jobId = jobIdMatch ? jobIdMatch[1] : null;
-      const id = jobId ? `${company.id}:${jobId}` : `${company.id}_url:${Buffer.from(jobUrl).toString("base64url")}`;
+      const id = jobId
+        ? `${company.id}:${jobId}`
+        : `${company.id}_url:${Buffer.from(jobUrl).toString("base64url")}`;
 
-      // Try to locate an Apply link if present (optional)
+      // Apply link (optional)
       const applyHref =
         $("a:contains('Apply now')").first().attr("href") ||
         $("a:contains('Apply Now')").first().attr("href") ||
@@ -116,7 +96,6 @@ export async function scrapeSapHtml({
         scrapedAt
       });
     } catch (e) {
-      // IMPORTANT: log failures so "0 jobs" is diagnosable
       console.error(`[${company.id}] detail failed: ${jobUrl} :: ${e?.message || e}`);
     }
   }
@@ -125,11 +104,136 @@ export async function scrapeSapHtml({
   return jobs;
 }
 
+/**
+ * Remove scripts/styles and common non-content areas (header/nav/footer/cookie consent).
+ */
+function stripNoise($) {
+  $("script, style, noscript").remove();
+
+  // common site chrome
+  $("header, nav, footer").remove();
+
+  // common cookie/consent containers (varies by tenant/theme)
+  $(
+    [
+      "#onetrust-consent-sdk",
+      "#cookieConsentManager",
+      ".cookie",
+      ".cookie-consent",
+      ".cookieConsent",
+      ".onoffswitch",
+      ".ot-sdk-container",
+      "[id*=cookie]",
+      "[class*=cookie]"
+    ].join(",")
+  ).remove();
+
+  // remove common “utility” blocks that often pollute text
+  $(
+    [
+      "form",
+      ".searchResults",
+      ".search-results",
+      ".pagination",
+      ".jobAlert",
+      ".job-alert",
+      ".subscribe",
+      ".emailsubscribe",
+      "[data-testid*=jobAlert]"
+    ].join(",")
+  ).remove();
+}
+
+/**
+ * Extract job description from best-guess containers for SuccessFactors/J2W pages.
+ * We prioritize content-like regions and avoid global chrome.
+ */
+function extractJobDescriptionText($) {
+  // Preferred containers found across many SuccessFactors/J2W themes
+  const candidates = [
+    // common main job section wrappers
+    "#jobDescriptionText",
+    ".job-description",
+    ".jobDescription",
+    ".jobdesc",
+    "[data-testid*=jobDescription]",
+    // often there is a content column
+    "#content",
+    ".content",
+    ".content-area",
+    ".main-content",
+    "main",
+    "article"
+  ];
+
+  for (const sel of candidates) {
+    const el = $(sel).first();
+    if (el && el.length) {
+      const t = cleanText(el.text());
+      if (isGoodDescription(t)) return postProcessDescription(t);
+    }
+  }
+
+  // Last resort: body (already stripped of scripts/headers/footers/cookies)
+  const bodyText = cleanText($("body").text());
+  return isGoodDescription(bodyText) ? postProcessDescription(bodyText) : null;
+}
+
+function isGoodDescription(t) {
+  if (!t) return false;
+
+  // Avoid returning very short or clearly non-description strings
+  if (t.length < 200) return false;
+
+  // Heuristic: should contain job-ish headings/words
+  const s = t.toLowerCase();
+  const signals = [
+    "the position",
+    "about the role",
+    "tasks",
+    "responsibilities",
+    "requirements",
+    "your contribution",
+    "qualifications",
+    "what you will",
+    "apply"
+  ];
+  return signals.some((x) => s.includes(x));
+}
+
+function postProcessDescription(t) {
+  // remove common trailing blocks that still sneak in
+  let out = t;
+
+  // Chop at "Find similar jobs" / "Terms of Use" / "Data Privacy" if present
+  const cutMarkers = [
+    "find similar jobs",
+    "terms of use",
+    "general terms and conditions",
+    "data privacy",
+    "imprint",
+    "cookie settings",
+    "cookie consent manager"
+  ];
+
+  const lower = out.toLowerCase();
+  let cutAt = -1;
+  for (const m of cutMarkers) {
+    const i = lower.indexOf(m);
+    if (i >= 0) cutAt = cutAt < 0 ? i : Math.min(cutAt, i);
+  }
+  if (cutAt >= 0) out = out.slice(0, cutAt);
+
+  // Collapse whitespace
+  out = out.replace(/\s+/g, " ").trim();
+
+  return out;
+}
+
 // Merge "Cookie" header string with Set-Cookie responses
 function mergeCookies(existingJar, setCookieHeaders) {
   const jarMap = new Map();
 
-  // Existing cookies
   for (const part of String(existingJar || "").split(";")) {
     const kv = part.trim();
     if (!kv) continue;
@@ -137,7 +241,6 @@ function mergeCookies(existingJar, setCookieHeaders) {
     if (eq > 0) jarMap.set(kv.slice(0, eq), kv.slice(eq + 1));
   }
 
-  // New Set-Cookie headers (take name=value before ';')
   for (const sc of setCookieHeaders) {
     const nv = String(sc).split(";")[0].trim();
     const eq = nv.indexOf("=");
