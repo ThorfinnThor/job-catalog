@@ -6,6 +6,7 @@ import { createLimiter } from "./lib/limit.mjs";
 
 import { scrapeSapHtml } from "./adapters/sap-html.mjs";
 import { scrapeWorkday } from "./adapters/workday.mjs";
+import { isEnglishOrGermanDescription } from "./lib/desc-lang.mjs";
 
 function isJobValid(job) {
   return Boolean(cleanText(job.title) && job.url && job.company?.id);
@@ -40,12 +41,10 @@ async function scrapeOneSite(site) {
 async function main() {
   const all = [];
   const sourceCounts = {};
-
-  const limit = createLimiter(2); // keep it polite; adapters may hit many pages
+  const limit = createLimiter(2);
 
   for (const site of sites) {
     console.log(`Scraping: ${site.company.name} (${site.kind})`);
-
     try {
       const jobs = await limit(async () => await scrapeOneSite(site));
       const good = jobs.filter(isJobValid);
@@ -59,13 +58,28 @@ async function main() {
     }
   }
 
-  const jobs = uniqById(all).sort((a, b) => {
+  // Dedupe
+  let jobs = uniqById(all);
+
+  // ✅ Filter: keep only jobs whose descriptions are English or German
+  const before = jobs.length;
+  jobs = jobs.filter((j) => {
+    const desc = j?.description?.text || "";
+    return isEnglishOrGermanDescription(desc);
+  });
+  const after = jobs.length;
+
+  // Sort for stable output
+  jobs = jobs.sort((a, b) => {
     return a.company.name.localeCompare(b.company.name) || a.title.localeCompare(b.title);
   });
 
   const meta = {
     scrapedAt: new Date().toISOString(),
     total: jobs.length,
+    totalBeforeLangFilter: before,
+    totalAfterLangFilter: after,
+    langFilter: ["en", "de"],
     sources: sourceCounts
   };
 
@@ -73,7 +87,7 @@ async function main() {
   await writeFile("public/jobs.csv", toCsv(jobs));
   await writeFile("public/jobs-meta.json", JSON.stringify(meta, null, 2));
 
-  console.log(`Done. Wrote ${jobs.length} total jobs.`);
+  console.log(`Done. Wrote ${jobs.length} jobs (before lang filter: ${before}).`);
 }
 
 main().catch((e) => {
