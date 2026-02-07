@@ -1,9 +1,9 @@
 {
-  "scrapedAt": "2026-02-07T08:11:08.250Z",
-  "total": 238,
+  "scrapedAt": "2026-02-07T08:28:17.124Z",
+  "total": 498,
   "sources": {
     "biontech": 233,
-    "gsk": 0,
+    "gsk": 260,
     "immatics": 5
   }
 }
