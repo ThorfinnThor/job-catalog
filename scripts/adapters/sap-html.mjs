@@ -3,8 +3,8 @@ import { fetchTextWithCookies } from "../lib/http.mjs";
 import { absoluteUrl, cleanText } from "../lib/normalize.mjs";
 
 /**
- * Generic SAP / SuccessFactors-style HTML job board adapter.
- * Improved: extracts ONLY the job content and strips scripts/CSS/cookie banners.
+ * SAP / SuccessFactors-style HTML job board adapter.
+ * Fix: robust location extraction (meta line not always next sibling of H1).
  */
 export async function scrapeSapHtml({
   company,
@@ -51,18 +51,15 @@ export async function scrapeSapHtml({
 
       const $ = cheerio.load(jobHtml);
 
-      // Remove script/style + obvious boilerplate containers BEFORE extracting text.
+      // Remove scripts/styles and obvious boilerplate before extraction
       stripNoise($);
 
       const title = cleanText($("h1").first().text()) || "Unknown title";
 
-      // SuccessFactors often has a small meta line near title:
-      // "Mainz, Germany | full time | Job ID: 11010"
-      const detailLine = cleanText($("h1").first().nextAll().first().text());
-      const locPart = detailLine.split("|")[0]?.trim() || "";
-      const location = cleanText(locPart) || null;
+      // Robust: location may be in a meta line elsewhere, not just next sibling
+      const { location, metaLine } = extractSapMeta($);
 
-      // Extract the job content from best candidates (in order).
+      // Description (same as your cleaned approach)
       const descriptionText = extractJobDescriptionText($);
 
       // Stable ID: prefer "Job ID: 12345" if present, otherwise base64 of URL
@@ -85,7 +82,7 @@ export async function scrapeSapHtml({
         title,
         location,
         workplace: null,
-        employmentType: /full\\s*time/i.test(detailLine) ? "full_time" : null,
+        employmentType: /full\\s*time/i.test(metaLine) ? "full_time" : null,
         department: null,
         team: null,
         url: jobUrl,
@@ -104,16 +101,13 @@ export async function scrapeSapHtml({
   return jobs;
 }
 
-/**
- * Remove scripts/styles and common non-content areas (header/nav/footer/cookie consent).
- */
+/** --- Helpers --- */
+
 function stripNoise($) {
   $("script, style, noscript").remove();
-
-  // common site chrome
   $("header, nav, footer").remove();
 
-  // common cookie/consent containers (varies by tenant/theme)
+  // Cookie/consent containers
   $(
     [
       "#onetrust-consent-sdk",
@@ -121,47 +115,86 @@ function stripNoise($) {
       ".cookie",
       ".cookie-consent",
       ".cookieConsent",
-      ".onoffswitch",
       ".ot-sdk-container",
       "[id*=cookie]",
       "[class*=cookie]"
     ].join(",")
   ).remove();
-
-  // remove common “utility” blocks that often pollute text
-  $(
-    [
-      "form",
-      ".searchResults",
-      ".search-results",
-      ".pagination",
-      ".jobAlert",
-      ".job-alert",
-      ".subscribe",
-      ".emailsubscribe",
-      "[data-testid*=jobAlert]"
-    ].join(",")
-  ).remove();
 }
 
 /**
- * Extract job description from best-guess containers for SuccessFactors/J2W pages.
- * We prioritize content-like regions and avoid global chrome.
+ * Extract location from SuccessFactors meta line.
+ * On these pages, the meta line often looks like:
+ *   "Mainz, Germany | full time | Job ID: 1249417301"
+ * but can be in a different container than "h1.next()".
  */
+function extractSapMeta($) {
+  const titleEl = $("h1").first();
+
+  // 1) Try common “location/meta” selectors
+  const selectorCandidates = [
+    ".jobGeoLocation",
+    ".job-location",
+    ".jobLocation",
+    "[data-testid*=location]",
+    "[class*=location]",
+    "[id*=location]"
+  ];
+
+  for (const sel of selectorCandidates) {
+    const t = cleanText($(sel).first().text());
+    // Ignore junk like "Location All"
+    if (t && t.length < 120 && !t.toLowerCase().includes("location all")) {
+      return { location: t, metaLine: t };
+    }
+  }
+
+  // 2) Try to find a meta line near the title block (parent/siblings)
+  const nearTitleText = cleanText(
+    titleEl.parent().text() + " " + titleEl.parent().siblings().text()
+  );
+
+  const locFromNear = parseLocationFromMetaLine(nearTitleText);
+  if (locFromNear) return { location: locFromNear.location, metaLine: locFromNear.metaLine };
+
+  // 3) Fallback: scan the top of main/body text for the first meta line
+  const topText = cleanText($("main").text() || $("body").text()).slice(0, 3000);
+  const locFromTop = parseLocationFromMetaLine(topText);
+  if (locFromTop) return { location: locFromTop.location, metaLine: locFromTop.metaLine };
+
+  return { location: null, metaLine: "" };
+}
+
+function parseLocationFromMetaLine(text) {
+  const t = cleanText(text);
+  if (!t) return null;
+
+  // Look for: "<location> | <something>"
+  // where <something> could be "full time", "part time", or "Job ID"
+  const m = t.match(
+    /(.{3,120}?)\\s*\\|\\s*(full\\s*time|part\\s*time|contract|internship|temporary|job\\s*id)/i
+  );
+  if (!m) return null;
+
+  // Clean up location fragment
+  let loc = cleanText(m[1]);
+
+  // Remove common leading noise
+  loc = loc.replace(/^apply now\\s*»\\s*/i, "").trim();
+  loc = loc.replace(/^loading\\.+\\s*/i, "").trim();
+
+  // If location still looks like navigation garbage, reject
+  if (!loc || loc.toLowerCase().includes("skip to main content")) return null;
+
+  return { location: loc || null, metaLine: cleanText(m[0]) };
+}
+
 function extractJobDescriptionText($) {
-  // Preferred containers found across many SuccessFactors/J2W themes
   const candidates = [
-    // common main job section wrappers
     "#jobDescriptionText",
     ".job-description",
     ".jobDescription",
     ".jobdesc",
-    "[data-testid*=jobDescription]",
-    // often there is a content column
-    "#content",
-    ".content",
-    ".content-area",
-    ".main-content",
     "main",
     "article"
   ];
@@ -170,42 +203,18 @@ function extractJobDescriptionText($) {
     const el = $(sel).first();
     if (el && el.length) {
       const t = cleanText(el.text());
-      if (isGoodDescription(t)) return postProcessDescription(t);
+      if (t && t.length > 200) return postProcessDescription(t);
     }
   }
 
-  // Last resort: body (already stripped of scripts/headers/footers/cookies)
   const bodyText = cleanText($("body").text());
-  return isGoodDescription(bodyText) ? postProcessDescription(bodyText) : null;
-}
-
-function isGoodDescription(t) {
-  if (!t) return false;
-
-  // Avoid returning very short or clearly non-description strings
-  if (t.length < 200) return false;
-
-  // Heuristic: should contain job-ish headings/words
-  const s = t.toLowerCase();
-  const signals = [
-    "the position",
-    "about the role",
-    "tasks",
-    "responsibilities",
-    "requirements",
-    "your contribution",
-    "qualifications",
-    "what you will",
-    "apply"
-  ];
-  return signals.some((x) => s.includes(x));
+  return bodyText && bodyText.length > 200 ? postProcessDescription(bodyText) : null;
 }
 
 function postProcessDescription(t) {
-  // remove common trailing blocks that still sneak in
   let out = t;
 
-  // Chop at "Find similar jobs" / "Terms of Use" / "Data Privacy" if present
+  // Cut off common footer/legal blocks
   const cutMarkers = [
     "find similar jobs",
     "terms of use",
@@ -224,13 +233,9 @@ function postProcessDescription(t) {
   }
   if (cutAt >= 0) out = out.slice(0, cutAt);
 
-  // Collapse whitespace
-  out = out.replace(/\s+/g, " ").trim();
-
-  return out;
+  return out.replace(/\\s+/g, " ").trim();
 }
 
-// Merge "Cookie" header string with Set-Cookie responses
 function mergeCookies(existingJar, setCookieHeaders) {
   const jarMap = new Map();
 
