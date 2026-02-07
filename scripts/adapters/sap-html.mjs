@@ -17,7 +17,11 @@ export async function scrapeSapHtml({
   // ---- LIST PAGINATION ----
   for (let start = 0; start <= maxStart; start += pageSize) {
     const url = new URL(company.careersUrl);
+
+    // Most Jobs2Web/SF boards support this lightweight format.
+    // It’s MUCH less likely to 504 than the full HTML page.
     url.searchParams.set("startrow", String(start));
+    url.searchParams.set("format", "ajax");
 
     const before = jobLinks.size;
 
@@ -26,7 +30,6 @@ export async function scrapeSapHtml({
 
     const $ = cheerio.load(listHtml);
 
-    // More permissive link extraction
     const linkSelectors = [
       "a[href*='/job/']",
       "a[href^='/job/']",
@@ -39,18 +42,15 @@ export async function scrapeSapHtml({
       const href = $(el).attr("href");
       const full = absoluteUrl(company.careersUrl, href);
       if (!full) return;
-
-      // Normalize: accept typical successfactors job paths
       if (full.includes("/job/") || full.includes("?jobId=")) jobLinks.add(full);
     });
 
-    // If first page yields no links, dump debug HTML so you can inspect what the runner got
     if (start === 0 && jobLinks.size === 0) {
       await writeFile(`public/debug-${company.id}-list.html`, listHtml);
       console.error(
         `[${company.id}] ERROR: no job links found on first list page. Wrote public/debug-${company.id}-list.html`
       );
-      break; // no point paginating if page 0 has none
+      break;
     }
 
     const after = jobLinks.size;
@@ -71,7 +71,6 @@ export async function scrapeSapHtml({
 
       const title = cleanText($("h1").first().text()) || "Unknown title";
 
-      // Location/meta line (BioNTech pipes + Boehringer "Primary location")
       const meta = extractSapLocationAndMetaLine($);
       const location = meta.location;
 
@@ -117,7 +116,6 @@ export async function scrapeSapHtml({
 function stripNoise($) {
   $("script, style, noscript").remove();
   $("header, nav, footer").remove();
-
   $(
     [
       "#onetrust-consent-sdk",
@@ -133,14 +131,12 @@ function stripNoise($) {
 }
 
 function extractSapLocationAndMetaLine($) {
-  // BioNTech-style pipe line under title:
-  // "Mainz, Germany | full time | Job ID: 10606"
+  // BioNTech style: "Mainz, Germany | full time | Job ID: 10606"
   const bodyTop = cleanText(($("body").text() || "").slice(0, 6000));
   const pipe = parsePipeMetaLine(bodyTop);
   if (pipe?.location) return pipe;
 
-  // Boehringer-style sidebar:
-  // "Primary location Ingelheim, Germany"
+  // Boehringer style: sidebar “Primary location Ingelheim, Germany”
   const primary = extractAfterLabel(bodyTop, [
     "Primary location",
     "Primary Location",
@@ -176,7 +172,6 @@ function extractAfterLabel(text, labels) {
     const m = t.match(re);
     if (m && m[1]) return cleanText(m[1]);
   }
-
   return null;
 }
 
