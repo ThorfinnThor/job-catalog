@@ -3,24 +3,22 @@ export const sites = [
     company: {
       id: "biontech",
       name: "BioNTech",
-      careersUrl:
-        "https://jobs.biontech.com/search/?createNewAlert=false&q=&optionsFacetsDD_location=&optionsFacetsDD_customfield1=&optionsFacetsDD_customfield2="
+      careersUrl: "https://jobs.biontech.com/search/"
     },
-    kind: "biontech_html"
+    kind: "sap_html",
+    sap: { pageSize: 100, maxStart: 5000 }
   },
+
   {
-  company: {
-    id: "gsk",
-    name: "GSK",
-    careersUrl: "https://gsk.wd5.myworkdayjobs.com/GSKCareers"
+    company: {
+      id: "boehringer",
+      name: "Boehringer Ingelheim",
+      careersUrl: "https://jobs.boehringer-ingelheim.com/search/"
+    },
+    kind: "sap_html",
+    sap: { pageSize: 100, maxStart: 5000 }
   },
-  kind: "workday",
-  workday: {
-    host: "gsk.wd5.myworkdayjobs.com",
-    tenant: "gsk",
-    site: "GSKCareers"
-  }
-},
+
   {
     company: {
       id: "immatics",
@@ -32,6 +30,20 @@ export const sites = [
       host: "immatics.wd3.myworkdayjobs.com",
       tenant: "immatics",
       site: "Immatics_External"
+    }
+  },
+
+  {
+    company: {
+      id: "gsk",
+      name: "GSK",
+      careersUrl: "https://gsk.wd5.myworkdayjobs.com/GSKCareers"
+    },
+    kind: "workday",
+    workday: {
+      host: "gsk.wd5.myworkdayjobs.com",
+      tenant: "gsk",
+      site: "GSKCareers"
     }
   }
 ];
