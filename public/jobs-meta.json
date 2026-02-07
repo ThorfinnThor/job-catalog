@@ -1,10 +1,16 @@
 {
-  "scrapedAt": "2026-02-07T21:45:26.733Z",
-  "total": 907,
+  "scrapedAt": "2026-02-07T22:20:37.713Z",
+  "total": 513,
+  "totalBeforeLangFilter": 515,
+  "totalAfterLangFilter": 513,
+  "langFilter": [
+    "en",
+    "de"
+  ],
   "sources": {
-    "biontech": 233,
-    "boehringer": 150,
+    "biontech": 0,
+    "boehringer": 0,
     "immatics": 5,
-    "gsk": 519
+    "gsk": 510
   }
 }
