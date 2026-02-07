@@ -1,29 +1,56 @@
 import { fetchText } from "../lib/http.mjs";
-import { cleanText, stripHtml, safeIsoDate, normalizeWorkplace, normalizeEmploymentType } from "../lib/normalize.mjs";
+import {
+  cleanText,
+  stripHtml,
+  safeIsoDate,
+  normalizeWorkplace,
+  normalizeEmploymentType
+} from "../lib/normalize.mjs";
 
 /**
  * Workday public "cxs" endpoints are the most stable way to scrape Workday.
- * This adapter tries common Workday patterns (GET then POST).
  *
- * Inputs:
- * - host: e.g. immatics.wd3.myworkdayjobs.com
- * - tenant: e.g. immatics
- * - site: e.g. Immatics_External
+ * This version fixes:
+ * 1) Human URL vs API URL:
+ *    - url/applyUrl should point to the human job page:
+ *      https://<host>/<site>/job/...
+ *    - API detail JSON stays at:
+ *      https://<host>/wday/cxs/<tenant>/<site>/job/...
+ *
+ * 2) Location extraction:
+ *    - Prefer list endpoint fields
+ *    - Fall back to job detail JSON jobPostingInfo fields
  */
-export async function scrapeWorkday({ company, host, tenant, site, searchText = "", max = 250 }) {
+export async function scrapeWorkday({
+  company,
+  host,
+  tenant,
+  site,
+  searchText = "",
+  max = 500
+}) {
   const scrapedAt = new Date().toISOString();
 
-  const base = `https://${host}/wday/cxs/${tenant}/${site}`;
-  const listUrl = `${base}/jobs`;
+  // Human-facing base (what users should see when clicking "View original posting")
+  // Example: https://immatics.wd3.myworkdayjobs.com/Immatics_External
+  const humanBase = company.careersUrl.replace(/\/+$/, "");
+
+  // API base
+  // Example: https://immatics.wd3.myworkdayjobs.com/wday/cxs/immatics/Immatics_External
+  const apiBase = `https://${host}/wday/cxs/${tenant}/${site}`.replace(/\/+$/, "");
+
+  const listEndpoint = `${apiBase}/jobs`;
 
   async function getPage(offset, limit) {
-    // Variant A: GET with query params (common)
-    const urlA = `${listUrl}?offset=${offset}&limit=${limit}&searchText=${encodeURIComponent(searchText)}`;
+    // Variant A: GET with query params
+    const urlA = `${listEndpoint}?offset=${offset}&limit=${limit}&searchText=${encodeURIComponent(
+      searchText
+    )}`;
     const a = await tryJson(urlA);
     if (a?.jobPostings) return a;
 
-    // Variant B: POST with JSON body (common)
-    const b = await tryPostJson(listUrl, {
+    // Variant B: POST with JSON body
+    const b = await tryPostJson(listEndpoint, {
       appliedFacets: {},
       searchText,
       limit,
@@ -32,7 +59,7 @@ export async function scrapeWorkday({ company, host, tenant, site, searchText = 
     if (b?.jobPostings) return b;
 
     // Variant C: some tenants use "query" instead of "searchText"
-    const c = await tryPostJson(listUrl, {
+    const c = await tryPostJson(listEndpoint, {
       appliedFacets: {},
       query: searchText,
       limit,
@@ -46,9 +73,7 @@ export async function scrapeWorkday({ company, host, tenant, site, searchText = 
   async function tryJson(url) {
     try {
       const txt = await fetchText(url, {
-        headers: {
-          accept: "application/json,text/plain,*/*"
-        }
+        headers: { accept: "application/json,text/plain,*/*" }
       });
       return JSON.parse(txt);
     } catch {
@@ -58,21 +83,9 @@ export async function scrapeWorkday({ company, host, tenant, site, searchText = 
 
   async function tryPostJson(url, body) {
     try {
-      const txt = await fetchText(url, {
-        headers: {
-          accept: "application/json,text/plain,*/*",
-          "content-type": "application/json"
-        },
-        // undici fetchText doesn't expose method; we use a hack via ?method override not possible.
-      });
-      // If GET only, above won't work; we implement POST via direct undici fetch here:
       return await postJson(url, body);
     } catch {
-      try {
-        return await postJson(url, body);
-      } catch {
-        return null;
-      }
+      return null;
     }
   }
 
@@ -81,7 +94,8 @@ export async function scrapeWorkday({ company, host, tenant, site, searchText = 
     const res = await fetch(url, {
       method: "POST",
       headers: {
-        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "user-agent":
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         accept: "application/json,text/plain,*/*",
         "content-type": "application/json",
         "accept-language": "en-US,en;q=0.8,de-DE;q=0.7,de;q=0.6"
@@ -90,6 +104,14 @@ export async function scrapeWorkday({ company, host, tenant, site, searchText = 
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} Workday POST`);
     return await res.json();
+  }
+
+  async function getJobDetailJson(externalPath) {
+    // externalPath typically looks like: "/job/Tuebingen-Germany/Role-_JR123"
+    // Detail JSON is under API base:
+    //   https://host/wday/cxs/tenant/site + externalPath
+    const apiDetailUrl = `${apiBase}${externalPath}`;
+    return await tryJson(apiDetailUrl);
   }
 
   const jobs = [];
@@ -103,50 +125,72 @@ export async function scrapeWorkday({ company, host, tenant, site, searchText = 
     if (!page || !Array.isArray(page.jobPostings) || page.jobPostings.length === 0) break;
 
     for (const jp of page.jobPostings) {
-      const id = cleanText(jp.externalPath ?? jp.bulletFields?.[0] ?? jp?.jobReqId ?? "");
-      const externalPath = jp.externalPath ? `${base}${jp.externalPath}` : null;
-      const postingUrl = externalPath || jp?.url || null;
+      const externalPath = cleanText(jp.externalPath || "");
+      if (!externalPath.startsWith("/job/")) continue;
 
-      if (!postingUrl) continue;
-      if (seen.has(postingUrl)) continue;
-      seen.add(postingUrl);
+      // ✅ Human URL (NOT the API URL)
+      const humanUrl = new URL(externalPath, `${humanBase}/`).toString();
 
-      const title = cleanText(jp.title);
-      const loc = cleanText(jp.locationsText || (Array.isArray(jp.locations) ? jp.locations.join(", ") : jp.location) || "");
+      if (seen.has(humanUrl)) continue;
+      seen.add(humanUrl);
 
-      // Attempt to get detail via /job/<...> which is HTML; better: the detail JSON endpoint.
-      // Some tenants provide: /job/<id> or /job/<...> as HTML; this adapter keeps description minimal unless we can fetch JSON.
+      const title = cleanText(jp.title) || "Unknown title";
+
+      // First attempt: list endpoint location fields
+      const listLoc = pickFirstNonEmpty([
+        jp.locationsText,
+        Array.isArray(jp.locations) ? jp.locations.join(", ") : "",
+        jp.location,
+        jp.primaryLocation
+      ]);
+
+      // Fetch detail JSON to improve location + description robustness
+      let detail = null;
+      let detailLocation = null;
       let descriptionText = null;
+      let postedAt = safeIsoDate(jp?.postedOn ?? jp?.postedDate ?? null);
 
-      // Try detail endpoint patterns
-      const detailCandidates = [];
-      // jp.externalPath looks like "/job/Tuebingen-Germany/Medical-Monitor-_JR100587"
-      if (jp.externalPath) detailCandidates.push(`${base}${jp.externalPath}`);
-      // JSON detail pattern often: /job/<reqId>
-      if (jp?.jobReqId) detailCandidates.push(`${base}/job/${jp.jobReqId}`);
+      try {
+        detail = await getJobDetailJson(externalPath);
+        if (detail?.jobPostingInfo) {
+          descriptionText = stripHtml(detail.jobPostingInfo.jobDescription || "");
 
-      for (const du of detailCandidates) {
-        const dj = await tryJson(du);
-        if (dj?.jobPostingInfo?.jobDescription) {
-          descriptionText = stripHtml(dj.jobPostingInfo.jobDescription);
-          break;
+          // Workday detail location fields can vary by tenant
+          detailLocation = extractLocationFromDetail(detail.jobPostingInfo);
+
+          // Some tenants include posted date in detail
+          postedAt = postedAt || safeIsoDate(detail.jobPostingInfo?.postedOn ?? null);
         }
+      } catch {
+        // ignore detail failure; keep list-only fields
       }
 
+      const location = cleanText(detailLocation || listLoc) || null;
+
+      // ID: prefer a Workday request / JR id if present, otherwise stable by URL
+      const jr =
+        (Array.isArray(jp.bulletFields) ? jp.bulletFields.find((x) => String(x).startsWith("JR")) : null) ||
+        null;
+
       jobs.push({
-        id: jp?.bulletFields?.find((x) => String(x).startsWith("JR")) ? `workday:${jp.bulletFields.find((x) => String(x).startsWith("JR"))}` : `workday:${Buffer.from(postingUrl).toString("base64url")}`,
+        id: jr ? `workday:${jr}` : `workday:${Buffer.from(humanUrl).toString("base64url")}`,
         company,
-        title: title || "Unknown title",
-        location: loc || null,
-        workplace: normalizeWorkplace(loc),
+        title,
+        location,
+        workplace: normalizeWorkplace(location || ""),
         employmentType: normalizeEmploymentType(jp?.timeType ?? jp?.categoriesText ?? ""),
-        department: cleanText(jp?.jobFamily ?? jp?.category ?? ""),
+        department: cleanText(jp?.jobFamily ?? jp?.category ?? "") || null,
         team: null,
-        url: postingUrl,
-        applyUrl: postingUrl,
-        description: { text: descriptionText, html: null },
-        source: { kind: "workday_api", raw: { externalPath: jp.externalPath } },
-        postedAt: safeIsoDate(jp?.postedOn ?? jp?.postedDate ?? null),
+
+        // ✅ user-facing URL
+        url: humanUrl,
+        applyUrl: humanUrl,
+
+        // ✅ description from detail JSON (cleaned)
+        description: { text: descriptionText || null, html: null },
+
+        source: { kind: "workday_api", raw: { externalPath } },
+        postedAt,
         scrapedAt
       });
     }
@@ -156,4 +200,71 @@ export async function scrapeWorkday({ company, host, tenant, site, searchText = 
   }
 
   return jobs;
+}
+
+function pickFirstNonEmpty(values) {
+  for (const v of values) {
+    const s = cleanText(v || "");
+    if (s) return s;
+  }
+  return "";
+}
+
+/**
+ * Extract a useful location string from Workday jobPostingInfo.
+ * Tenants differ, so we try multiple patterns.
+ */
+function extractLocationFromDetail(info) {
+  // Common patterns: string fields
+  const direct = pickFirstNonEmpty([
+    info.location,
+    info.locationsText,
+    info.primaryLocation
+  ]);
+  if (direct) return direct;
+
+  // Sometimes locations are arrays of strings
+  if (Array.isArray(info.locations) && info.locations.length) {
+    return cleanText(info.locations.join(", "));
+  }
+
+  // Sometimes locations are arrays of objects
+  // Try typical keys
+  const objArrays = [info.additionalLocations, info.jobLocations, info.locations];
+  for (const arr of objArrays) {
+    if (!Array.isArray(arr) || arr.length === 0) continue;
+
+    const parts = arr
+      .map((x) => {
+        if (!x) return "";
+        if (typeof x === "string") return x;
+        return (
+          x.displayName ||
+          x.location ||
+          x.city ||
+          x.name ||
+          ""
+        );
+      })
+      .map((s) => cleanText(s))
+      .filter(Boolean);
+
+    if (parts.length) return parts.join(", ");
+  }
+
+  // Sometimes location is a nested object
+  const locObj = info.jobRequisitionLocation || info.primaryLocationObject || null;
+  if (locObj && typeof locObj === "object") {
+    const parts = [
+      locObj.displayName,
+      locObj.city,
+      locObj.country,
+      locObj.name
+    ]
+      .map((s) => cleanText(s || ""))
+      .filter(Boolean);
+    if (parts.length) return parts.join(", ");
+  }
+
+  return "";
 }
