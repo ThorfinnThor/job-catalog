@@ -1,65 +1,122 @@
-import { fetch } from "undici";
+import { fetch as undiciFetch } from "undici";
 
-const DEFAULT_UA =
-  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const DEFAULT_HEADERS = {
+  "user-agent":
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+  accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "accept-language": "en-US,en;q=0.9,de-DE;q=0.8,de;q=0.7",
+};
 
-export async function fetchText(url, { timeoutMs = 30000, headers = {}, method = "GET", body } = {}) {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), timeoutMs);
+const RETRY_STATUS = new Set([429, 500, 502, 503, 504]);
 
-  try {
-    const res = await fetch(url, {
-      method,
-      body,
-      headers: {
-        "user-agent": DEFAULT_UA,
-        accept: "text/html,application/json;q=0.9,*/*;q=0.8",
-        "accept-language": "en-US,en;q=0.8,de-DE;q=0.7,de;q=0.6",
-        ...headers
-      },
-      redirect: "follow",
-      signal: controller.signal
-    });
-
-    if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-    return await res.text();
-  } finally {
-    clearTimeout(t);
-  }
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
-export async function fetchTextWithCookies(url, cookieJar = "", { timeoutMs = 45000 } = {}) {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), timeoutMs);
+async function fetchWithRetry(url, opts = {}) {
+  const {
+    method = "GET",
+    headers = {},
+    body,
+    timeoutMs = 25000,
+    retries = 6,
+    retryBaseMs = 1000,
+  } = opts;
 
-  try {
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        "user-agent": DEFAULT_UA,
-        accept: "text/html,*/*",
-        "accept-language": "en-US,en;q=0.8,de-DE;q=0.7,de;q=0.6",
-        ...(cookieJar ? { cookie: cookieJar } : {})
-      },
-      redirect: "follow",
-      signal: controller.signal
-    });
+  let lastErr = null;
 
-    if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), timeoutMs);
 
-    const text = await res.text();
-    const setCookies = res.headers.getSetCookie ? res.headers.getSetCookie() : [];
-    return { text, cookies: setCookies };
-  } finally {
-    clearTimeout(t);
+    try {
+      const res = await undiciFetch(url, {
+        method,
+        headers: { ...DEFAULT_HEADERS, ...headers },
+        body,
+        redirect: "follow",
+        signal: ac.signal,
+      });
+
+      clearTimeout(timer);
+
+      // Retry on known transient statuses
+      if (RETRY_STATUS.has(res.status) && attempt < retries) {
+        // drain body
+        try { await res.arrayBuffer(); } catch {}
+        const backoff = retryBaseMs * Math.pow(2, attempt) + Math.floor(Math.random() * 250);
+        await sleep(backoff);
+        continue;
+      }
+
+      return res;
+    } catch (e) {
+      clearTimeout(timer);
+      lastErr = e;
+
+      // Retry network/timeouts
+      if (attempt < retries) {
+        const backoff = retryBaseMs * Math.pow(2, attempt) + Math.floor(Math.random() * 250);
+        await sleep(backoff);
+        continue;
+      }
+      break;
+    }
   }
+
+  throw lastErr || new Error(`Fetch failed: ${url}`);
+}
+
+export async function fetchText(url, opts = {}) {
+  const res = await fetchWithRetry(url, opts);
+  if (!res.ok) {
+    const body = await safeReadText(res);
+    throw new Error(`HTTP ${res.status} for ${url}${body ? `\n${body.slice(0, 200)}` : ""}`);
+  }
+  return await res.text();
 }
 
 export async function fetchJson(url, opts = {}) {
-  const text = await fetchText(url, { ...opts, headers: { ...(opts.headers || {}), accept: "application/json,*/*" } });
+  const res = await fetchWithRetry(url, {
+    ...opts,
+    headers: { accept: "application/json,text/plain,*/*", ...(opts.headers || {}) },
+  });
+  if (!res.ok) {
+    const body = await safeReadText(res);
+    throw new Error(`HTTP ${res.status} for ${url}${body ? `\n${body.slice(0, 200)}` : ""}`);
+  }
+  return await res.json();
+}
+
+/**
+ * Fetch text and capture Set-Cookie headers (for sticky sessions on some SAP boards).
+ * cookieJar is a string like: "a=b; c=d"
+ */
+export async function fetchTextWithCookies(url, cookieJar = "", opts = {}) {
+  const headers = { ...(opts.headers || {}) };
+  if (cookieJar) headers.cookie = cookieJar;
+
+  const res = await fetchWithRetry(url, { ...opts, headers });
+
+  // undici exposes getSetCookie(); fall back to single header
+  const cookies =
+    typeof res.headers.getSetCookie === "function"
+      ? res.headers.getSetCookie()
+      : (res.headers.get("set-cookie") ? [res.headers.get("set-cookie")] : []);
+
+  const text = await res.text();
+
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} for ${url}`);
+  }
+
+  return { text, cookies, status: res.status };
+}
+
+async function safeReadText(res) {
   try {
-    return JSON.parse(text);
+    return await res.text();
   } catch {
-    throw new Error(`Invalid JSON from ${url}`);
+    return "";
   }
 }
