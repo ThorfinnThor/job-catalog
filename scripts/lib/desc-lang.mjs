@@ -1,112 +1,94 @@
-import { writeFile } from "node:fs/promises";
-import { sites } from "./sites.mjs";
-import { toCsv } from "./lib/csv.mjs";
-import { cleanText } from "./lib/normalize.mjs";
-import { createLimiter } from "./lib/limit.mjs";
+import { cleanText } from "./normalize.mjs";
 
-import { scrapeSapHtml } from "./adapters/sap-html.mjs";
-import { scrapeWorkday } from "./adapters/workday.mjs";
-import { isEnglishOrGermanDescription } from "./lib/desc-lang.mjs";
+/**
+ * Classify description language into:
+ * - "en" (English)
+ * - "de" (German)
+ * - "other" (confidently NOT English/German)
+ * - "unknown" (can't tell reliably)
+ *
+ * This is designed for filtering:
+ *   KEEP: en, de, unknown
+ *   DROP: other
+ */
+export function classifyDescLang(text) {
+  const raw = cleanText(text || "");
+  if (!raw) return "unknown";
 
-function isJobValid(job) {
-  return Boolean(cleanText(job.title) && job.url && job.company?.id);
-}
+  // Very short text isn't reliable for language detection
+  if (raw.length < 180) return "unknown";
 
-function uniqById(items) {
-  return Array.from(new Map(items.map((x) => [x.id, x])).values());
-}
+  const t = raw.toLowerCase();
 
-async function scrapeOneSite(site) {
-  if (site.kind === "sap_html") {
-    return await scrapeSapHtml({
-      company: site.company,
-      pageSize: site.sap?.pageSize ?? 100,
-      maxStart: site.sap?.maxStart ?? 5000
-    });
+  // Strong German signal (umlauts)
+  const hasUmlaut = /[äöüß]/.test(t);
+
+  // High-signal stopwords (word-boundary matching so punctuation doesn't break it)
+  const deWords = [
+    "und", "der", "die", "das", "nicht", "mit", "für", "auf", "als", "wir", "sie",
+    "werden", "können", "aufgaben", "anforderungen", "voraussetzungen", "bewerbung",
+    "stelle", "position", "verantwortung", "erfahrung"
+  ];
+
+  const enWords = [
+    "the", "and", "with", "you", "we", "will", "role", "position",
+    "responsibilities", "requirements", "qualification", "qualifications",
+    "experience", "apply", "about"
+  ];
+
+  // A few "other language" signals to confidently classify as OTHER
+  // (We keep this conservative — only strong, common words.)
+  const otherSignals = [
+    // French
+    " le ", " la ", " les ", " des ", " pour ", " vous ", " nous ", " poste ", " responsabilités",
+    // Spanish
+    " el ", " la ", " los ", " las ", " para ", " usted ", " nosotros ", " responsabilidades", " requisitos",
+    // Italian
+    " il ", " lo ", " gli ", " per ", " voi ", " noi ", " responsabilità", " requisiti"
+  ];
+
+  const deScore = (hasUmlaut ? 3 : 0) + countWordHits(t, deWords);
+  const enScore = countWordHits(t, enWords);
+
+  // Decide EN/DE if we have strong evidence
+  if (deScore >= 7 && deScore >= enScore) return "de";
+  if (enScore >= 7 && enScore >= deScore) return "en";
+
+  // If long description, allow medium confidence for EN/DE
+  if (raw.length >= 900) {
+    if (deScore >= 5 && deScore >= enScore) return "de";
+    if (enScore >= 5 && enScore >= deScore) return "en";
   }
 
-  if (site.kind === "workday") {
-    const wd = site.workday;
-    return await scrapeWorkday({
-      company: site.company,
-      host: wd.host,
-      tenant: wd.tenant,
-      site: wd.site
-    });
-  }
+  // Now decide OTHER only if we have evidence AGAINST EN/DE:
+  const otherScore = countSubstringHits(t, otherSignals);
 
-  throw new Error(`Unknown site.kind: ${site.kind}`);
+  // "Other" only if:
+  // - lots of other-language signals
+  // - AND EN/DE scores are low
+  if (otherScore >= 6 && deScore <= 3 && enScore <= 3) return "other";
+
+  // Otherwise we don't know (keep it)
+  return "unknown";
 }
 
-function countByCompany(jobs) {
-  const out = {};
-  for (const j of jobs) {
-    const id = j?.company?.id || "unknown";
-    out[id] = (out[id] || 0) + 1;
+function countWordHits(text, words) {
+  let score = 0;
+  for (const w of words) {
+    const re = new RegExp(`\\b${escapeRe(w)}\\b`, "i");
+    if (re.test(text)) score += 1;
   }
-  return out;
+  return score;
 }
 
-async function main() {
-  const all = [];
-  const sourceCountsBeforeFilter = {};
-  const limit = createLimiter(2);
-
-  for (const site of sites) {
-    console.log(`Scraping: ${site.company.name} (${site.kind})`);
-    try {
-      const jobs = await limit(async () => await scrapeOneSite(site));
-      const good = jobs.filter(isJobValid);
-
-      console.log(`  -> scraped valid jobs: ${good.length}`);
-      sourceCountsBeforeFilter[site.company.id] = good.length;
-      all.push(...good);
-    } catch (e) {
-      console.error(`  !! failed: ${e.message}`);
-      sourceCountsBeforeFilter[site.company.id] = 0;
-    }
+function countSubstringHits(text, needles) {
+  let score = 0;
+  for (const n of needles) {
+    if (text.includes(n)) score += 1;
   }
-
-  // Dedupe
-  let jobs = uniqById(all);
-
-  const before = jobs.length;
-  const beforeByCompany = countByCompany(jobs);
-
-  // ✅ Filter: keep only jobs with EN/DE descriptions
-  jobs = jobs.filter((j) => {
-    const desc = j?.description?.text || "";
-    return isEnglishOrGermanDescription(desc);
-  });
-
-  const after = jobs.length;
-  const afterByCompany = countByCompany(jobs);
-
-  // Sort for stable output
-  jobs = jobs.sort((a, b) => {
-    return a.company.name.localeCompare(b.company.name) || a.title.localeCompare(b.title);
-  });
-
-  const meta = {
-    scrapedAt: new Date().toISOString(),
-    total: jobs.length,
-    totalBeforeLangFilter: before,
-    totalAfterLangFilter: after,
-    langFilter: ["en", "de"],
-    sourcesBeforeFilter: sourceCountsBeforeFilter,
-    byCompanyBeforeLangFilter: beforeByCompany,
-    byCompanyAfterLangFilter: afterByCompany
-  };
-
-  await writeFile("public/jobs.json", JSON.stringify(jobs, null, 2));
-  await writeFile("public/jobs.csv", toCsv(jobs));
-  await writeFile("public/jobs-meta.json", JSON.stringify(meta, null, 2));
-
-  console.log(`Done. Wrote ${jobs.length} jobs (before lang filter: ${before}).`);
-  console.log("By company after lang filter:", afterByCompany);
+  return score;
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+function escapeRe(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
