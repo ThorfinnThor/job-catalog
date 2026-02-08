@@ -1,16 +1,33 @@
 {
-  "scrapedAt": "2026-02-08T06:50:01.872Z",
-  "total": 894,
+  "scrapedAt": "2026-02-08T13:00:58.187Z",
+  "total": 999,
+  "totalBeforeLangFilter": 1005,
+  "totalAfterLangFilter": 999,
   "scrapedValidByCompany": {
-    "biontech": 233,
-    "boehringer": 150,
     "immatics": 5,
-    "gsk": 509
+    "gsk": 500,
+    "pfizer": 500
   },
   "byCompanyAfterFilter": {
-    "biontech": 233,
-    "boehringer": 150,
     "immatics": 5,
-    "gsk": 506
-  }
+    "gsk": 498,
+    "pfizer": 496
+  },
+  "enabledCompanies": [
+    {
+      "id": "immatics",
+      "name": "Immatics",
+      "kind": "workday"
+    },
+    {
+      "id": "gsk",
+      "name": "GSK",
+      "kind": "workday"
+    },
+    {
+      "id": "pfizer",
+      "name": "Pfizer",
+      "kind": "workday"
+    }
+  ]
 }
