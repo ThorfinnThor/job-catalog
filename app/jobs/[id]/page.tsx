@@ -1,122 +1,116 @@
-import Link from "next/link";
-import type { Metadata } from "next";
-import { getJobById, excerpt } from "@/lib/jobs";
+import { getJobById } from "@/lib/jobs";
+import { notFound } from "next/navigation";
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const job = await getJobById(decodeURIComponent(params.id));
+type Props = { params: { id: string } };
+
+export function generateMetadata({ params }: Props) {
+  const job = getJobById(decodeURIComponent(params.id));
   if (!job) return { title: "Job not found" };
-
-  const desc = excerpt(job.description?.text, 180) || `Open role at ${job.company.name}.`;
   return {
-    title: `${job.title}`,
-    description: desc,
-    alternates: { canonical: `/jobs/${encodeURIComponent(job.id)}` },
-    openGraph: {
-      title: job.title,
-      description: desc,
-      type: "article"
-    }
+    title: `${job.title} – ${job.company.name}`,
+    description: (job.description?.text || "").slice(0, 160) || `${job.title} at ${job.company.name}`,
   };
 }
 
-function jsonLd(job: any) {
-  // Minimal schema.org JobPosting
-  const loc = job.location ? { address: job.location } : undefined;
-  const org = { name: job.company?.name };
-  return {
+export default function JobPage({ params }: Props) {
+  const id = decodeURIComponent(params.id);
+  const job = getJobById(id);
+  if (!job) return notFound();
+
+  const description = job.description?.text || "";
+
+  const jobPostingJsonLd = {
     "@context": "https://schema.org",
     "@type": "JobPosting",
     title: job.title,
-    hiringOrganization: org,
-    jobLocation: loc ? { "@type": "Place", address: { "@type": "PostalAddress", addressLocality: job.location } } : undefined,
-    employmentType: job.employmentType ?? undefined,
-    description: job.description?.html ?? job.description?.text ?? undefined,
+    description: description,
+    hiringOrganization: {
+      "@type": "Organization",
+      name: job.company.name,
+    },
+    jobLocation: job.locationParsed?.country
+      ? {
+          "@type": "Place",
+          address: {
+            "@type": "PostalAddress",
+            addressCountry: job.locationParsed.country,
+            addressRegion: job.locationParsed.region || undefined,
+            addressLocality: job.locationParsed.city || undefined,
+          },
+        }
+      : undefined,
+    datePosted: job.postedAt || job.scrapedAt || undefined,
+    employmentType: job.employmentType || undefined,
     url: job.url,
-    datePosted: job.postedAt ?? undefined
   };
-}
-
-export default async function JobPage({ params }: { params: { id: string } }) {
-  const id = decodeURIComponent(params.id);
-  const job = await getJobById(id);
-
-  if (!job) {
-    return (
-      <main className="container">
-        <div className="prose">
-          <h1>Job not found</h1>
-          <p>
-            The job ID <code>{id}</code> is not in the current dataset.
-          </p>
-          <p>
-            <Link href="/">Back to search</Link>
-          </p>
-        </div>
-      </main>
-    );
-  }
 
   return (
-    <main className="container">
-      <div className="badge" style={{ marginBottom: 14 }}>
-        <Link href="/">← Back</Link>
-        <span>·</span>
-        <span>{job.company.name}</span>
-        <span>·</span>
-        <span>{job.location ?? "Location not listed"}</span>
+    <main className="mx-auto max-w-4xl px-4 py-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd) }}
+      />
+
+      <a href="/" className="text-sm text-white/60 hover:text-white/80">
+        ← Back
+      </a>
+
+      <h1 className="mt-3 text-3xl font-bold leading-tight">{job.title}</h1>
+
+      <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/70">
+        <span className="rounded-full border border-white/10 px-2 py-1">{job.company.name}</span>
+
+        {job.locationParsed?.country ? (
+          <span className="rounded-full border border-white/10 px-2 py-1">
+            {job.locationParsed.country}
+            {job.locationParsed.city ? ` · ${job.locationParsed.city}` : ""}
+            {job.locationConfidence ? ` (${job.locationConfidence})` : ""}
+          </span>
+        ) : job.location ? (
+          <span className="rounded-full border border-white/10 px-2 py-1">{job.location}</span>
+        ) : null}
+
+        <span className="rounded-full border border-white/10 px-2 py-1">
+          {job.workplace} {job.workplaceConfidence ? `(${job.workplaceConfidence})` : ""}
+        </span>
+
+        <span className="rounded-full border border-white/10 px-2 py-1">{job.language.toUpperCase()}</span>
+
+        {job.department ? (
+          <span className="rounded-full border border-white/10 px-2 py-1">{job.department}</span>
+        ) : null}
       </div>
 
-      <div className="jobLayout">
-        <article className="prose">
-          <h1 style={{ marginTop: 0 }}>{job.title}</h1>
+      <div className="mt-6 flex gap-3">
+        <a
+          className="rounded-xl border border-white/10 bg-white/10 px-4 py-2 hover:bg-white/15 transition"
+          href={job.url}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Open original posting
+        </a>
+        <a
+          className="rounded-xl border border-white/10 bg-white/10 px-4 py-2 hover:bg-white/15 transition"
+          href={job.applyUrl || job.url}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Apply
+        </a>
+      </div>
 
-          <p className="small">
-            Source: <strong>{job.source.kind}</strong>
-            {" · "}
-            Scraped: <strong>{new Date(job.scrapedAt).toLocaleString()}</strong>
-          </p>
+      <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
+        <h2 className="text-xl font-semibold">Description</h2>
+        {description ? (
+          <p className="mt-4 whitespace-pre-wrap leading-relaxed text-white/80">{description}</p>
+        ) : (
+          <p className="mt-4 text-white/60">No description captured.</p>
+        )}
+      </div>
 
-          <hr className="hr" />
-
-          {job.description?.text ? (
-            <div>
-              <h2>Description</h2>
-              <p style={{ whiteSpace: "pre-wrap" }}>{job.description.text}</p>
-            </div>
-          ) : (
-            <p>No description found.</p>
-          )}
-
-          <script
-            type="application/ld+json"
-            // eslint-disable-next-line react/no-danger
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd(job)) }}
-          />
-        </article>
-
-        <aside className="side">
-          <div className="metaRow" style={{ marginBottom: 12 }}>
-            {job.workplace ? <span className="pill">{job.workplace}</span> : null}
-            {job.employmentType ? <span className="pill">{job.employmentType}</span> : null}
-            {job.department ? <span className="pill">{job.department}</span> : null}
-            {job.team ? <span className="pill">{job.team}</span> : null}
-          </div>
-
-          <a className="button" href={job.applyUrl ?? job.url} target="_blank" rel="noreferrer">
-            Apply / View original posting →
-          </a>
-
-          <div className="small" style={{ marginTop: 12 }}>
-            <div>
-              <strong>Original URL:</strong>
-            </div>
-            <div style={{ wordBreak: "break-word" }}>
-              <a href={job.url} target="_blank" rel="noreferrer">
-                {job.url}
-              </a>
-            </div>
-          </div>
-        </aside>
+      <div className="mt-6 text-sm text-white/50">
+        Scraped: {job.scrapedAt ? new Date(job.scrapedAt).toLocaleString() : "unknown"}
       </div>
     </main>
   );
