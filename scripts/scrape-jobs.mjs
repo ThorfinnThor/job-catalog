@@ -1,32 +1,20 @@
-import { writeFile, mkdir } from "node:fs/promises";
-
+import { writeFile } from "node:fs/promises";
 import { sites } from "./sites.mjs";
-import { scrapeWorkday } from "./adapters/workday.mjs";
-import { scrapeSapHtml } from "./adapters/sap-html.mjs";
-
 import { toCsv } from "./lib/csv.mjs";
 import { cleanText } from "./lib/normalize.mjs";
-import { parseLocation } from "./lib/location.mjs";
 import { createLimiter } from "./lib/limit.mjs";
-import { detectLangEnDe } from "./lib/lang.mjs";
+
+import { scrapeSapHtml } from "./adapters/sap-html.mjs";
+import { scrapeWorkday } from "./adapters/workday.mjs";
+import { classifyEnDeStrict } from "./lib/desc-lang.mjs";
+import { parseLocation } from "./lib/location.mjs";
 
 function isJobValid(job) {
-  return Boolean(
-    cleanText(job?.id) &&
-      cleanText(job?.title) &&
-      cleanText(job?.company?.id) &&
-      cleanText(job?.company?.name) &&
-      cleanText(job?.url)
-  );
+  return Boolean(cleanText(job.title) && job.url && job.company?.id);
 }
 
 function uniqById(items) {
-  const m = new Map();
-  for (const x of items) {
-    if (!x?.id) continue;
-    if (!m.has(x.id)) m.set(x.id, x);
-  }
-  return Array.from(m.values());
+  return Array.from(new Map(items.map((x) => [x.id, x])).values());
 }
 
 function countByCompany(jobs) {
@@ -38,17 +26,32 @@ function countByCompany(jobs) {
   return out;
 }
 
+async function scrapeOneSite(site) {
+  if (site.kind === "sap_html" || site.kind === "sap") {
+    return await scrapeSapHtml({
+      company: site.company,
+      pageSize: site.sap?.pageSize ?? 100,
+      maxStart: site.sap?.maxStart ?? 5000
+    });
+  }
+  if (site.kind === "workday") {
+    const wd = site.workday;
+    return await scrapeWorkday({
+      company: site.company,
+      host: wd.host,
+      tenant: wd.tenant,
+      site: wd.site
+    });
+  }
+  throw new Error(`Unknown site.kind: ${site.kind}`);
+}
+
 function inferWorkplace(job) {
-  const existing = cleanText(job?.workplace || "");
+  // If adapter already set workplace, we trust it (high)
+  const existing = cleanText(job.workplace || "");
   if (existing) return { workplace: existing, confidence: "high" };
 
-  const hay = [
-    job?.title || "",
-    job?.location || "",
-    job?.description?.text || ""
-  ]
-    .join(" ")
-    .toLowerCase();
+  const hay = `${job.title || ""} ${job.location || ""} ${job.description?.text || ""}`.toLowerCase();
 
   const hasRemote = /\b(remote|work from home|home office|telework)\b/.test(hay);
   const hasHybrid = /\b(hybrid)\b/.test(hay);
@@ -61,83 +64,33 @@ function inferWorkplace(job) {
   return { workplace: "unknown", confidence: "low" };
 }
 
-function enrichJob(job) {
-  const parsed = parseLocation(job.location);
-  const wp = inferWorkplace(job);
+function detectLang(job) {
+  const desc = job?.description?.text || "";
+  const title = job?.title || "";
 
-  const desc = cleanText(job?.description?.text || "");
-  const lang = detectLangEnDe(desc);
-  const language = lang === "en" || lang === "de" ? lang : "unknown";
+  const fromDesc = classifyEnDeStrict(desc);
+  if (fromDesc !== "other") return fromDesc;
 
-  return {
-    ...job,
-    language,
-    locationParsed: {
-      raw: parsed.raw,
-      country: parsed.country,
-      region: parsed.region,
-      city: parsed.city
-    },
-    locationConfidence: parsed.confidence,
-    workplace: wp.workplace,
-    workplaceConfidence: wp.confidence
-  };
-}
-
-function keepOnlyEnglishOrGerman(job) {
-  return job.language === "en" || job.language === "de";
-}
-
-async function scrapeOneSite(site) {
-  if (site.kind === "workday") {
-    const wd = site.workday;
-    return await scrapeWorkday({
-      company: site.company,
-      host: wd.host,
-      tenant: wd.tenant,
-      site: wd.site,
-      pageSize: wd.pageSize ?? 200,
-      maxTotal: wd.maxTotal ?? 5000
-    });
-  }
-
-  if (site.kind === "sap_html" || site.kind === "sap") {
-    return await scrapeSapHtml({
-      company: site.company,
-      pageSize: site.sap?.pageSize ?? 100,
-      maxStart: site.sap?.maxStart ?? 5000
-    });
-  }
-
-  throw new Error(`Unknown site.kind: ${site.kind}`);
+  return classifyEnDeStrict(title);
 }
 
 async function main() {
-  await mkdir("public", { recursive: true });
-
-  const limiter = createLimiter(2);
-
   const all = [];
   const scrapedValidByCompany = {};
+  const limit = createLimiter(2);
 
   for (const site of sites) {
     console.log(`Scraping: ${site.company.name} (${site.kind})`);
-
     try {
-      const jobs = await limiter(async () => await scrapeOneSite(site));
-      const valid = jobs.filter(isJobValid);
+      const jobs = await limit(async () => await scrapeOneSite(site));
+      const good = jobs.filter(isJobValid);
 
-      scrapedValidByCompany[site.company.id] = valid.length;
-      console.log(`  -> valid jobs: ${valid.length}`);
-
-      // Optional quick sanity check: description length
-      const sample = valid.find((j) => (j?.description?.text || "").length > 200);
-      console.log(`  sample desc length: ${sample ? (sample.description.text || "").length : 0}`);
-
-      all.push(...valid);
+      console.log(`  -> valid jobs: ${good.length}`);
+      scrapedValidByCompany[site.company.id] = good.length;
+      all.push(...good);
     } catch (e) {
+      console.error(`  !! failed: ${e.message}`);
       scrapedValidByCompany[site.company.id] = 0;
-      console.error(`  !! failed: ${e?.message || e}`);
     }
   }
 
@@ -146,40 +99,47 @@ async function main() {
   const before = jobs.length;
   const beforeByCompany = countByCompany(jobs);
 
-  jobs = jobs.map(enrichJob);
-  jobs = jobs.filter(keepOnlyEnglishOrGerman);
+  // Enrich + STRICT filter: keep ONLY English/German
+  jobs = jobs
+    .map((j) => {
+      const language = detectLang(j); // en|de|other
+      const parsed = parseLocation(j.location);
+
+      const wp = inferWorkplace(j);
+
+      return {
+        ...j,
+        language,
+        locationParsed: {
+          raw: parsed.raw,
+          country: parsed.country,
+          region: parsed.region,
+          city: parsed.city
+        },
+        locationConfidence: parsed.confidence,
+        workplace: wp.workplace,
+        workplaceConfidence: wp.confidence
+      };
+    })
+    .filter((j) => j.language === "en" || j.language === "de");
 
   const after = jobs.length;
   const afterByCompany = countByCompany(jobs);
 
-  jobs.sort((a, b) => {
-    return (
-      a.company.name.localeCompare(b.company.name) ||
-      a.title.localeCompare(b.title) ||
-      a.id.localeCompare(b.id)
-    );
+  jobs = jobs.sort((a, b) => {
+    return a.company.name.localeCompare(b.company.name) || a.title.localeCompare(b.title);
   });
 
   const meta = {
     scrapedAt: new Date().toISOString(),
-    enabledCompanies: sites.map((s) => ({
-      id: s.company.id,
-      name: s.company.name,
-      kind: s.kind
-    })),
+    total: jobs.length,
+    totalBeforeStrictLangFilter: before,
+    totalAfterStrictLangFilter: after,
+    strictLangKeep: ["en", "de"],
     scrapedValidByCompany,
-    totalBeforeLangFilter: before,
-    totalAfterLangFilter: after,
-    byCompanyBeforeLangFilter: beforeByCompany,
-    byCompanyAfterLangFilter: afterByCompany,
-    langPolicy: {
-      keep: ["en", "de"],
-      rule: "Keep jobs only if description language is confidently English or German."
-    },
-    notes: [
-      "Workplace can be missing in sources; it is inferred from title/location/description when absent.",
-      "Location parsing is heuristic; check locationConfidence."
-    ]
+    byCompanyBeforeStrictLangFilter: beforeByCompany,
+    byCompanyAfterStrictLangFilter: afterByCompany,
+    enabledCompanies: sites.map((s) => ({ id: s.company.id, name: s.company.name, kind: s.kind }))
   };
 
   await writeFile("public/jobs.json", JSON.stringify(jobs, null, 2));
