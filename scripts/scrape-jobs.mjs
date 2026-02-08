@@ -7,6 +7,7 @@ import { createLimiter } from "./lib/limit.mjs";
 import { scrapeSapHtml } from "./adapters/sap-html.mjs";
 import { scrapeWorkday } from "./adapters/workday.mjs";
 import { classifyEnDeStrict } from "./lib/desc-lang.mjs";
+import { parseLocation } from "./lib/location.mjs";
 
 function isJobValid(job) {
   return Boolean(cleanText(job.title) && job.url && job.company?.id);
@@ -25,23 +26,14 @@ function countByCompany(jobs) {
   return out;
 }
 
-function countLang(jobs) {
-  const out = { en: 0, de: 0, other: 0 };
-  for (const j of jobs) {
-    out[j._lang || "other"] += 1;
-  }
-  return out;
-}
-
 async function scrapeOneSite(site) {
-  if (site.kind === "sap_html" || site.kind === "biontech_html" || site.kind === "sap") {
+  if (site.kind === "sap_html" || site.kind === "sap") {
     return await scrapeSapHtml({
       company: site.company,
       pageSize: site.sap?.pageSize ?? 100,
       maxStart: site.sap?.maxStart ?? 5000
     });
   }
-
   if (site.kind === "workday") {
     const wd = site.workday;
     return await scrapeWorkday({
@@ -51,20 +43,35 @@ async function scrapeOneSite(site) {
       site: wd.site
     });
   }
-
   throw new Error(`Unknown site.kind: ${site.kind}`);
 }
 
-function detectJobLang(job) {
+function inferWorkplace(job) {
+  // If adapter already set workplace, we trust it (high)
+  const existing = cleanText(job.workplace || "");
+  if (existing) return { workplace: existing, confidence: "high" };
+
+  const hay = `${job.title || ""} ${job.location || ""} ${job.description?.text || ""}`.toLowerCase();
+
+  const hasRemote = /\b(remote|work from home|home office|telework)\b/.test(hay);
+  const hasHybrid = /\b(hybrid)\b/.test(hay);
+  const hasOnsite = /\b(on[- ]?site|onsite|in[- ]office)\b/.test(hay);
+
+  if (hasRemote && !hasHybrid) return { workplace: "remote", confidence: "medium" };
+  if (hasHybrid) return { workplace: "hybrid", confidence: "medium" };
+  if (hasOnsite) return { workplace: "onsite", confidence: "medium" };
+
+  return { workplace: "unknown", confidence: "low" };
+}
+
+function detectLang(job) {
   const desc = job?.description?.text || "";
   const title = job?.title || "";
 
-  // Prefer description if it’s substantive; else fall back to title
   const fromDesc = classifyEnDeStrict(desc);
   if (fromDesc !== "other") return fromDesc;
 
-  const fromTitle = classifyEnDeStrict(title);
-  return fromTitle;
+  return classifyEnDeStrict(title);
 }
 
 async function main() {
@@ -92,14 +99,29 @@ async function main() {
   const before = jobs.length;
   const beforeByCompany = countByCompany(jobs);
 
-  // ✅ STRICT filter: keep ONLY English or German
+  // Enrich + STRICT filter: keep ONLY English/German
   jobs = jobs
     .map((j) => {
-      const lang = detectJobLang(j);
-      return { ...j, _lang: lang }; // internal; we’ll drop this field before writing
+      const language = detectLang(j); // en|de|other
+      const parsed = parseLocation(j.location);
+
+      const wp = inferWorkplace(j);
+
+      return {
+        ...j,
+        language,
+        locationParsed: {
+          raw: parsed.raw,
+          country: parsed.country,
+          region: parsed.region,
+          city: parsed.city
+        },
+        locationConfidence: parsed.confidence,
+        workplace: wp.workplace,
+        workplaceConfidence: wp.confidence
+      };
     })
-    .filter((j) => j._lang === "en" || j._lang === "de")
-    .map(({ _lang, ...rest }) => rest);
+    .filter((j) => j.language === "en" || j.language === "de");
 
   const after = jobs.length;
   const afterByCompany = countByCompany(jobs);
@@ -124,8 +146,8 @@ async function main() {
   await writeFile("public/jobs.csv", toCsv(jobs));
   await writeFile("public/jobs-meta.json", JSON.stringify(meta, null, 2));
 
-  console.log(`Done. Wrote ${jobs.length} jobs (before strict filter: ${before}).`);
   console.log("By company after strict filter:", afterByCompany);
+  console.log(`Done. Wrote ${jobs.length} jobs.`);
 }
 
 main().catch((e) => {
