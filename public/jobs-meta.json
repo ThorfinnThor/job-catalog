@@ -1,17 +1,26 @@
 {
-  "scrapedAt": "2026-02-08T13:00:58.187Z",
-  "total": 999,
-  "totalBeforeLangFilter": 1005,
-  "totalAfterLangFilter": 999,
+  "scrapedAt": "2026-02-08T13:13:39.080Z",
+  "total": 788,
+  "totalBeforeStrictLangFilter": 1005,
+  "totalAfterStrictLangFilter": 788,
+  "strictLangKeep": [
+    "en",
+    "de"
+  ],
   "scrapedValidByCompany": {
     "immatics": 5,
     "gsk": 500,
     "pfizer": 500
   },
-  "byCompanyAfterFilter": {
+  "byCompanyBeforeStrictLangFilter": {
     "immatics": 5,
-    "gsk": 498,
-    "pfizer": 496
+    "gsk": 500,
+    "pfizer": 500
+  },
+  "byCompanyAfterStrictLangFilter": {
+    "immatics": 5,
+    "gsk": 489,
+    "pfizer": 294
   },
   "enabledCompanies": [
     {
