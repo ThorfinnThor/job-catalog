@@ -1,27 +1,24 @@
 {
-  "scrapedAt": "2026-02-08T13:13:39.080Z",
-  "total": 788,
-  "totalBeforeStrictLangFilter": 1005,
-  "totalAfterStrictLangFilter": 788,
+  "scrapedAt": "2026-02-08T13:59:24.645Z",
+  "total": 0,
+  "totalBeforeStrictLangFilter": 0,
+  "totalAfterStrictLangFilter": 0,
   "strictLangKeep": [
     "en",
     "de"
   ],
   "scrapedValidByCompany": {
-    "immatics": 5,
-    "gsk": 500,
-    "pfizer": 500
+    "immatics": 0,
+    "gsk": 0,
+    "pfizer": 0,
+    "jnj": 0,
+    "roche": 0,
+    "novartis": 0,
+    "sanofi": 0,
+    "astrazeneca": 0
   },
-  "byCompanyBeforeStrictLangFilter": {
-    "immatics": 5,
-    "gsk": 500,
-    "pfizer": 500
-  },
-  "byCompanyAfterStrictLangFilter": {
-    "immatics": 5,
-    "gsk": 489,
-    "pfizer": 294
-  },
+  "byCompanyBeforeStrictLangFilter": {},
+  "byCompanyAfterStrictLangFilter": {},
   "enabledCompanies": [
     {
       "id": "immatics",
@@ -36,6 +33,31 @@
     {
       "id": "pfizer",
       "name": "Pfizer",
+      "kind": "workday"
+    },
+    {
+      "id": "jnj",
+      "name": "Johnson & Johnson",
+      "kind": "workday"
+    },
+    {
+      "id": "roche",
+      "name": "Roche",
+      "kind": "workday"
+    },
+    {
+      "id": "novartis",
+      "name": "Novartis",
+      "kind": "workday"
+    },
+    {
+      "id": "sanofi",
+      "name": "Sanofi",
+      "kind": "workday"
+    },
+    {
+      "id": "astrazeneca",
+      "name": "AstraZeneca",
       "kind": "workday"
     }
   ]
