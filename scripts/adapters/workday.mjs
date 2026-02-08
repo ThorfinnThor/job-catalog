@@ -1,200 +1,123 @@
-import { fetchText } from "../lib/http.mjs";
-import {
-  cleanText,
-  stripHtml,
-  safeIsoDate,
-  normalizeWorkplace,
-  normalizeEmploymentType
-} from "../lib/normalize.mjs";
+import { fetchJson } from "../lib/http.mjs";
+import { cleanText } from "../lib/normalize.mjs";
 
+/**
+ * Workday CXS API adapter
+ * Endpoint pattern:
+ *   https://{host}/wday/cxs/{tenant}/{site}/jobs
+ *
+ * Pagination (common):
+ *   ?offset=0&limit=20
+ * Some tenants default to 20/50/100; some accept bigger.
+ *
+ * We paginate until:
+ *  - returned list is empty OR
+ *  - we reached "total" if provided OR
+ *  - we hit maxTotal safety cap
+ */
 export async function scrapeWorkday({
   company,
   host,
   tenant,
   site,
-  searchText = "",
-  max = 500
+  pageSize = 100,
+  maxTotal = 10000
 }) {
   const scrapedAt = new Date().toISOString();
 
-  const humanBase = normalizeBase(company.careersUrl);
-  const apiBase = normalizeBase(`https://${host}/wday/cxs/${tenant}/${site}`);
-  const listEndpoint = `${apiBase}/jobs`;
+  const base = `https://${host}/wday/cxs/${tenant}/${site}/jobs`;
 
-  async function tryJson(url) {
-    try {
-      const txt = await fetchText(url, { headers: { accept: "application/json,text/plain,*/*" } });
-      return JSON.parse(txt);
-    } catch {
-      return null;
-    }
-  }
-
-  async function postJson(url, body) {
-    const { fetch } = await import("undici");
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "user-agent":
-          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        accept: "application/json,text/plain,*/*",
-        "content-type": "application/json",
-        "accept-language": "en-US,en;q=0.8,de-DE;q=0.7,de;q=0.6"
-      },
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status} Workday POST`);
-    return await res.json();
-  }
-
-  async function getPage(offset, limit) {
-    const urlA = `${listEndpoint}?offset=${offset}&limit=${limit}&searchText=${encodeURIComponent(searchText)}`;
-    const a = await tryJson(urlA);
-    if (a?.jobPostings) return a;
-
-    const b = await postJson(listEndpoint, { appliedFacets: {}, searchText, limit, offset }).catch(() => null);
-    if (b?.jobPostings) return b;
-
-    const c = await postJson(listEndpoint, { appliedFacets: {}, query: searchText, limit, offset }).catch(() => null);
-    if (c?.jobPostings) return c;
-
-    return null;
-  }
-
-  async function getJobDetailJson(externalPath) {
-    const apiDetailUrl = `${apiBase}${externalPath}`;
-    return await tryJson(apiDetailUrl);
-  }
-
-  const jobs = [];
-  const seen = new Set();
   let offset = 0;
-  const limit = 20;
+  let total = null;
+  const items = [];
 
-  while (jobs.length < max) {
-    const page = await getPage(offset, limit);
-    if (!page?.jobPostings?.length) break;
+  while (true) {
+    const url = new URL(base);
+    url.searchParams.set("offset", String(offset));
+    url.searchParams.set("limit", String(pageSize));
 
-    for (const jp of page.jobPostings) {
-      const externalPath = cleanText(jp.externalPath || "");
-      if (!externalPath.startsWith("/job/")) continue;
+    const data = await fetchJson(url.toString(), {
+      headers: {
+        accept: "application/json,text/plain,*/*",
+      },
+      timeoutMs: 25000,
+      retries: 6
+    });
 
-      // ✅ Correct human URL (keeps /site and locale because it’s in humanBase)
-      const humanUrl = `${humanBase}${externalPath}`;
+    // Workday tenants vary: "jobPostings" is common; sometimes "items"
+    const pageItems =
+      Array.isArray(data?.jobPostings) ? data.jobPostings :
+      Array.isArray(data?.items) ? data.items :
+      [];
 
-      if (seen.has(humanUrl)) continue;
-      seen.add(humanUrl);
-
-      const title = cleanText(jp.title) || "Unknown title";
-
-      const listLoc = pickFirstNonEmpty([
-        jp.locationsText,
-        Array.isArray(jp.locations) ? jp.locations.join(", ") : "",
-        jp.location,
-        jp.primaryLocation
-      ]);
-
-      let descriptionText = null;
-      let detailLoc = null;
-      let postedAt = safeIsoDate(jp?.postedOn ?? jp?.postedDate ?? null);
-
-      try {
-        const detail = await getJobDetailJson(externalPath);
-        if (detail?.jobPostingInfo) {
-          descriptionText = stripHtml(detail.jobPostingInfo.jobDescription || "");
-          detailLoc = extractLocationsFromDetail(detail.jobPostingInfo);
-          postedAt = postedAt || safeIsoDate(detail.jobPostingInfo?.postedOn ?? null);
-        }
-      } catch {
-        // ignore
-      }
-
-      const location = cleanText(detailLoc || listLoc) || null;
-
-      const jr =
-        (Array.isArray(jp.bulletFields)
-          ? jp.bulletFields.find((x) => String(x).startsWith("JR"))
-          : null) || null;
-
-      jobs.push({
-        id: jr ? `workday:${jr}` : `workday:${Buffer.from(humanUrl).toString("base64url")}`,
-        company,
-        title,
-        location,
-        workplace: normalizeWorkplace(location || ""),
-        employmentType: normalizeEmploymentType(jp?.timeType ?? jp?.categoriesText ?? ""),
-        department: cleanText(jp?.jobFamily ?? jp?.category ?? "") || null,
-        team: null,
-        url: humanUrl,
-        applyUrl: humanUrl,
-        description: { text: descriptionText || null, html: null },
-        source: { kind: "workday_api", raw: { externalPath } },
-        postedAt,
-        scrapedAt
-      });
+    // Total can appear as total, totalResults, or in some nested field
+    if (total === null) {
+      total =
+        (typeof data?.total === "number" ? data.total : null) ??
+        (typeof data?.totalResults === "number" ? data.totalResults : null) ??
+        null;
     }
 
-    offset += page.jobPostings.length;
-    if (page.jobPostings.length < limit) break;
+    if (!pageItems.length) break;
+
+    items.push(...pageItems);
+
+    offset += pageItems.length;
+
+    // Stop conditions
+    if (offset >= maxTotal) break;
+    if (typeof total === "number" && offset >= total) break;
+
+    // If Workday returns fewer than requested, likely last page
+    if (pageItems.length < pageSize) break;
   }
+
+  // Convert to unified job objects and fetch details (optional but recommended)
+  const jobs = [];
+  for (const p of items) {
+    const id = p?.bulletFields?.reqId || p?.externalPath || p?.id || null;
+
+    const title = cleanText(p?.title) || "Unknown title";
+    const location = cleanText(p?.locationsText) || cleanText(p?.primaryLocation) || null;
+
+    // Human job URL
+    // externalPath typically looks like "/job/City-Country/Title_REQID"
+    const externalPath = p?.externalPath || p?.path || null;
+    const jobUrl = externalPath
+      ? `https://${host}/${site}${externalPath.startsWith("/") ? "" : "/"}${externalPath}`
+      : `https://${host}/${site}`;
+
+    // Workday details endpoint commonly:
+    // https://{host}/wday/cxs/{tenant}/{site}/job/{externalPathParts...}
+    // BUT each tenant varies; we already get a decent "jobDescription" in many listings.
+    const desc =
+      cleanText(p?.jobDescription) ||
+      cleanText(p?.description) ||
+      null;
+
+    const jobId = id ? String(id) : Buffer.from(jobUrl).toString("base64url");
+
+    jobs.push({
+      id: `${company.id}:${jobId}`,
+      company,
+      title,
+      location,
+      workplace: null,
+      employmentType: cleanText(p?.timeType) || null,
+      department: cleanText(p?.jobFamily) || null,
+      team: null,
+      url: jobUrl,
+      applyUrl: jobUrl,
+      description: { text: desc, html: null },
+      source: { kind: "workday_api", raw: { host, tenant, site } },
+      postedAt: p?.postedOn || p?.postedDate || null,
+      scrapedAt
+    });
+  }
+
+  console.log(
+    `[${company.id}] workday fetched=${items.length} (offset=${offset}, total=${total ?? "unknown"})`
+  );
 
   return jobs;
-}
-
-function normalizeBase(u) {
-  const url = new URL(u);
-  url.search = "";
-  url.hash = "";
-  return url.toString().replace(/\/+$/, "");
-}
-
-function pickFirstNonEmpty(values) {
-  for (const v of values) {
-    const s = cleanText(v || "");
-    if (s) return s;
-  }
-  return "";
-}
-
-/**
- * Returns a single string including ALL locations:
- * - handles locationsText with newlines
- * - handles arrays of strings/objects
- */
-function extractLocationsFromDetail(info) {
-  // 1) locationsText often contains newline-separated locations
-  const lt = cleanText(String(info.locationsText || "").replace(/\n+/g, ", "));
-  if (lt) return lt;
-
-  // 2) direct string
-  const direct = cleanText(info.location || info.primaryLocation || "");
-  if (direct) return direct;
-
-  // 3) arrays
-  const arrays = [info.additionalLocations, info.jobLocations, info.locations];
-  for (const arr of arrays) {
-    if (!Array.isArray(arr) || arr.length === 0) continue;
-
-    const parts = arr
-      .map((x) => {
-        if (!x) return "";
-        if (typeof x === "string") return x;
-        return x.displayName || x.location || x.city || x.name || "";
-      })
-      .map((s) => cleanText(s))
-      .filter(Boolean);
-
-    if (parts.length) return parts.join(", ");
-  }
-
-  // 4) nested object
-  const locObj = info.jobRequisitionLocation || info.primaryLocationObject || null;
-  if (locObj && typeof locObj === "object") {
-    const parts = [locObj.displayName, locObj.city, locObj.country, locObj.name]
-      .map((s) => cleanText(s || ""))
-      .filter(Boolean);
-    if (parts.length) return parts.join(", ");
-  }
-
-  return "";
 }
