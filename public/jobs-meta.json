@@ -1,33 +1,5 @@
 {
-  "scrapedAt": "2026-02-08T16:26:15.501Z",
-  "total": 0,
-  "totalBeforeStrictLangFilter": 145,
-  "totalAfterStrictLangFilter": 0,
-  "strictLangKeep": [
-    "en",
-    "de"
-  ],
-  "scrapedValidByCompany": {
-    "immatics": 5,
-    "gsk": 20,
-    "pfizer": 20,
-    "jnj": 20,
-    "roche": 20,
-    "novartis": 20,
-    "sanofi": 20,
-    "astrazeneca": 20
-  },
-  "byCompanyBeforeStrictLangFilter": {
-    "immatics": 5,
-    "gsk": 20,
-    "pfizer": 20,
-    "jnj": 20,
-    "roche": 20,
-    "novartis": 20,
-    "sanofi": 20,
-    "astrazeneca": 20
-  },
-  "byCompanyAfterStrictLangFilter": {},
+  "scrapedAt": "2026-02-08T16:40:33.099Z",
   "enabledCompanies": [
     {
       "id": "immatics",
@@ -69,5 +41,30 @@
       "name": "AstraZeneca",
       "kind": "workday"
     }
+  ],
+  "scrapedValidByCompany": {
+    "immatics": 0,
+    "gsk": 0,
+    "pfizer": 0,
+    "jnj": 0,
+    "roche": 0,
+    "novartis": 0,
+    "sanofi": 0,
+    "astrazeneca": 0
+  },
+  "totalBeforeLangFilter": 0,
+  "totalAfterLangFilter": 0,
+  "byCompanyBeforeLangFilter": {},
+  "byCompanyAfterLangFilter": {},
+  "langPolicy": {
+    "keep": [
+      "en",
+      "de"
+    ],
+    "rule": "Keep jobs only if description language is confidently English or German."
+  },
+  "notes": [
+    "Workplace can be missing in sources; it is inferred from title/location/description when absent.",
+    "Location parsing is heuristic; check locationConfidence."
   ]
 }
