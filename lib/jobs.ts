@@ -1,34 +1,47 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-import type { Job, JobsMeta } from "./types";
+import jobs from "@/public/jobs.json";
 
-const PUBLIC_DIR = path.join(process.cwd(), "public");
+export type Job = {
+  id: string;
+  company: { id: string; name: string };
+  title: string;
+  language: "en" | "de";
+  location: string | null;
+  locationParsed?: {
+    raw: string | null;
+    country: string | null;
+    region: string | null;
+    city: string | null;
+  };
+  locationConfidence?: "high" | "medium" | "low";
+  workplace: "remote" | "hybrid" | "onsite" | "unknown" | string;
+  workplaceConfidence?: "high" | "medium" | "low";
+  employmentType?: string | null;
+  department?: string | null;
+  url: string;
+  applyUrl?: string;
+  description?: { text: string | null; html: string | null };
+  postedAt?: string | null;
+  scrapedAt?: string | null;
+  source?: { kind: string };
+};
 
-export async function getJobs(): Promise<Job[]> {
-  const p = path.join(PUBLIC_DIR, "jobs.json");
-  const raw = await readFile(p, "utf8");
-  const jobs = JSON.parse(raw) as Job[];
-  return jobs;
+export function getAllJobs(): Job[] {
+  return jobs as Job[];
 }
 
-export async function getJobsMeta(): Promise<JobsMeta | null> {
-  try {
-    const p = path.join(PUBLIC_DIR, "jobs-meta.json");
-    const raw = await readFile(p, "utf8");
-    return JSON.parse(raw) as JobsMeta;
-  } catch {
-    return null;
-  }
+export function getJobById(id: string): Job | undefined {
+  return (jobs as Job[]).find((j) => j.id === id);
 }
 
-export async function getJobById(id: string): Promise<Job | null> {
-  const jobs = await getJobs();
-  return jobs.find((j) => j.id === id) ?? null;
+export function getFacets(all: Job[]) {
+  const companies = uniq(all.map((j) => j.company.name));
+  const countries = uniq(all.map((j) => j.locationParsed?.country).filter(Boolean) as string[]);
+  const cities = uniq(all.map((j) => j.locationParsed?.city).filter(Boolean) as string[]);
+  const workplaces = uniq(all.map((j) => j.workplace).filter(Boolean) as string[]);
+
+  return { companies, countries, cities, workplaces };
 }
 
-export function excerpt(text: string | null | undefined, maxLen = 180): string {
-  const s = String(text ?? "").replace(/\s+/g, " ").trim();
-  if (!s) return "";
-  if (s.length <= maxLen) return s;
-  return s.slice(0, maxLen - 1).trimEnd() + "…";
+function uniq<T>(arr: T[]): T[] {
+  return Array.from(new Set(arr)).sort((a: any, b: any) => String(a).localeCompare(String(b)));
 }
