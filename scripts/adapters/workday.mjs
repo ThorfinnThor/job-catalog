@@ -1,19 +1,19 @@
 import { fetchJson } from "../lib/http.mjs";
-import { cleanText } from "../lib/normalize.mjs";
+import { cleanText, absoluteUrl } from "../lib/normalize.mjs";
 
 /**
  * Workday CXS API adapter
- * Endpoint pattern:
+ *
+ * Base API:
  *   https://{host}/wday/cxs/{tenant}/{site}/jobs
  *
- * Pagination (common):
- *   ?offset=0&limit=20
- * Some tenants default to 20/50/100; some accept bigger.
+ * Pagination is tenant-dependent:
+ * - Many require POST with JSON body: { limit, offset, searchText, appliedFacets }
+ * - Some allow GET (often without params) and return a capped list (commonly 500)
  *
- * We paginate until:
- *  - returned list is empty OR
- *  - we reached "total" if provided OR
- *  - we hit maxTotal safety cap
+ * Strategy:
+ * 1) Prefer POST pagination (reliable when supported)
+ * 2) If POST returns 400, fall back to GET without params (legacy behavior)
  */
 export async function scrapeWorkday({
   company,
@@ -24,90 +24,138 @@ export async function scrapeWorkday({
   maxTotal = 10000
 }) {
   const scrapedAt = new Date().toISOString();
+  const apiBase = `https://${host}/wday/cxs/${tenant}/${site}/jobs`;
 
-  const base = `https://${host}/wday/cxs/${tenant}/${site}/jobs`;
+  // Use the human careersUrl (from sites.mjs) to build job links reliably
+  // e.g. https://pfizer.wd1.myworkdayjobs.com/en-US/PfizerCareers
+  const humanBase = company.careersUrl?.replace(/\/+$/, "") || `https://${host}/${site}`;
 
-  let offset = 0;
+  let items = [];
   let total = null;
-  const items = [];
 
-  while (true) {
-    const url = new URL(base);
-    url.searchParams.set("offset", String(offset));
-    url.searchParams.set("limit", String(pageSize));
+  // ---- Attempt POST pagination ----
+  try {
+    let offset = 0;
 
-    const data = await fetchJson(url.toString(), {
+    while (true) {
+      const body = {
+        // Many tenants accept this exact shape
+        limit: pageSize,
+        offset,
+        searchText: "",
+        appliedFacets: {}
+      };
+
+      const data = await fetchJson(apiBase, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json,text/plain,*/*",
+          origin: `https://${host}`,
+          referer: `${humanBase}/`
+        },
+        body: JSON.stringify(body),
+        timeoutMs: 25000,
+        retries: 6
+      });
+
+      const pageItems =
+        Array.isArray(data?.jobPostings) ? data.jobPostings :
+        Array.isArray(data?.items) ? data.items :
+        [];
+
+      if (total === null) {
+        total =
+          (typeof data?.total === "number" ? data.total : null) ??
+          (typeof data?.totalResults === "number" ? data.totalResults : null) ??
+          null;
+      }
+
+      if (!pageItems.length) break;
+
+      items.push(...pageItems);
+      offset += pageItems.length;
+
+      if (items.length >= maxTotal) break;
+      if (typeof total === "number" && offset >= total) break;
+      if (pageItems.length < pageSize) break;
+    }
+  } catch (e) {
+    // If POST pagination fails (commonly HTTP 400), fall back to GET without pagination params
+    console.error(
+      `[${company.id}] Workday POST pagination failed; falling back to GET (reason: ${e?.message || e})`
+    );
+
+    const data = await fetchJson(apiBase, {
+      method: "GET",
       headers: {
         accept: "application/json,text/plain,*/*",
+        origin: `https://${host}`,
+        referer: `${humanBase}/`
       },
       timeoutMs: 25000,
       retries: 6
     });
 
-    // Workday tenants vary: "jobPostings" is common; sometimes "items"
-    const pageItems =
+    items =
       Array.isArray(data?.jobPostings) ? data.jobPostings :
       Array.isArray(data?.items) ? data.items :
       [];
 
-    // Total can appear as total, totalResults, or in some nested field
-    if (total === null) {
-      total =
-        (typeof data?.total === "number" ? data.total : null) ??
-        (typeof data?.totalResults === "number" ? data.totalResults : null) ??
-        null;
-    }
-
-    if (!pageItems.length) break;
-
-    items.push(...pageItems);
-
-    offset += pageItems.length;
-
-    // Stop conditions
-    if (offset >= maxTotal) break;
-    if (typeof total === "number" && offset >= total) break;
-
-    // If Workday returns fewer than requested, likely last page
-    if (pageItems.length < pageSize) break;
+    total =
+      (typeof data?.total === "number" ? data.total : null) ??
+      (typeof data?.totalResults === "number" ? data.totalResults : null) ??
+      null;
   }
 
-  // Convert to unified job objects and fetch details (optional but recommended)
+  // ---- Map to unified jobs ----
   const jobs = [];
+
   for (const p of items) {
-    const id = p?.bulletFields?.reqId || p?.externalPath || p?.id || null;
+    // Workday varies; try common identifiers
+    const reqId =
+      p?.bulletFields?.reqId ||
+      p?.reqId ||
+      p?.jobReqId ||
+      null;
 
     const title = cleanText(p?.title) || "Unknown title";
-    const location = cleanText(p?.locationsText) || cleanText(p?.primaryLocation) || null;
 
-    // Human job URL
-    // externalPath typically looks like "/job/City-Country/Title_REQID"
+    // locationsText is common ("China - Shanghai - Shanghai")
+    const location =
+      cleanText(p?.locationsText) ||
+      cleanText(p?.primaryLocation) ||
+      null;
+
     const externalPath = p?.externalPath || p?.path || null;
-    const jobUrl = externalPath
-      ? `https://${host}/${site}${externalPath.startsWith("/") ? "" : "/"}${externalPath}`
-      : `https://${host}/${site}`;
 
-    // Workday details endpoint commonly:
-    // https://{host}/wday/cxs/{tenant}/{site}/job/{externalPathParts...}
-    // BUT each tenant varies; we already get a decent "jobDescription" in many listings.
+    // Build canonical job URL using careersUrl base
+    const url = externalPath ? absoluteUrl(humanBase, externalPath) : humanBase;
+
+    // Many tenants include a short description field in the listing response
     const desc =
       cleanText(p?.jobDescription) ||
       cleanText(p?.description) ||
       null;
 
-    const jobId = id ? String(id) : Buffer.from(jobUrl).toString("base64url");
+    const stableId = reqId ? String(reqId) : (externalPath ? externalPath : url);
+    const id = `${company.id}:${Buffer.from(stableId).toString("base64url")}`;
 
     jobs.push({
-      id: `${company.id}:${jobId}`,
+      id,
       company,
       title,
+      language: undefined, // filled later in scrape-jobs.mjs enrichment
       location,
-      workplace: null,
+      locationParsed: undefined, // filled later
+      locationConfidence: undefined, // filled later
+      workplace: null, // enriched later
+      workplaceConfidence: undefined, // enriched later
       employmentType: cleanText(p?.timeType) || null,
       department: cleanText(p?.jobFamily) || null,
       team: null,
-      url: jobUrl,
-      applyUrl: jobUrl,
+      url,
+      applyUrl: url,
       description: { text: desc, html: null },
       source: { kind: "workday_api", raw: { host, tenant, site } },
       postedAt: p?.postedOn || p?.postedDate || null,
@@ -116,7 +164,7 @@ export async function scrapeWorkday({
   }
 
   console.log(
-    `[${company.id}] workday fetched=${items.length} (offset=${offset}, total=${total ?? "unknown"})`
+    `[${company.id}] workday fetched=${items.length} total=${total ?? "unknown"}`
   );
 
   return jobs;
