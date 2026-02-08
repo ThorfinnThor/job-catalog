@@ -1,14 +1,19 @@
-import { fetchJson } from "../lib/http.mjs";
 import { cleanText, absoluteUrl } from "../lib/normalize.mjs";
 
 /**
- * Workday CXS job search
- * Most tenants expect:
- *   POST https://{host}/wday/cxs/{tenant}/{site}/jobs
- * with JSON body like:
- *   {"appliedFacets":[],"limit":50,"offset":0,"searchText":""}
+ * Workday CXS adapter with robust POST fallbacks + pagination.
  *
- * Pagination = increase offset in the BODY (not query string).
+ * Endpoint:
+ *   https://{host}/wday/cxs/{tenant}/{site}/jobs
+ *
+ * Pagination:
+ *   offset + limit (in POST body)
+ *
+ * Critical: Some tenants accept JSON bodies, others require x-www-form-urlencoded.
+ * This adapter tries:
+ *  - JSON body w/ appliedFacets {}
+ *  - JSON body w/ appliedFacets []
+ *  - FORM body (x-www-form-urlencoded) with appliedFacets="{}" / "[]"
  */
 export async function scrapeWorkday({
   company,
@@ -21,17 +26,13 @@ export async function scrapeWorkday({
   const scrapedAt = new Date().toISOString();
 
   const apiUrl = `https://${host}/wday/cxs/${tenant}/${site}/jobs`;
-
-  // Important: use a locale human URL for Referer/Origin consistency
-  // If you set careersUrl in sites.mjs, we use it; otherwise guess en-US.
   const humanBase = (company.careersUrl || `https://${host}/en-US/${site}`).replace(/\/+$/, "");
 
-  const headers = {
+  const baseHeaders = {
     accept: "application/json, text/plain, */*",
-    "content-type": "application/json;charset=UTF-8",
-    "x-requested-with": "XMLHttpRequest",
     "accept-language": "en-US,en;q=0.9",
-    // Workday tenants often behave better with a browser UA
+    "x-requested-with": "XMLHttpRequest",
+    // Browser-ish UA helps some tenants
     "user-agent":
       "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
     origin: `https://${host}`,
@@ -52,26 +53,64 @@ export async function scrapeWorkday({
     return null;
   };
 
+  async function postJson(bodyObj) {
+    return await fetchJsonWithRetries(apiUrl, {
+      method: "POST",
+      headers: {
+        ...baseHeaders,
+        "content-type": "application/json;charset=UTF-8"
+      },
+      body: JSON.stringify(bodyObj)
+    });
+  }
+
+  async function postForm(bodyObj, appliedFacetsValue) {
+    // Workday sometimes expects "appliedFacets" as a stringified JSON value in form body.
+    const params = new URLSearchParams();
+    params.set("limit", String(bodyObj.limit));
+    params.set("offset", String(bodyObj.offset));
+    params.set("searchText", bodyObj.searchText ?? "");
+    params.set("appliedFacets", appliedFacetsValue);
+
+    return await fetchJsonWithRetries(apiUrl, {
+      method: "POST",
+      headers: {
+        ...baseHeaders,
+        "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+      },
+      body: params.toString()
+    });
+  }
+
+  async function fetchPage(offset) {
+    const baseBody = { limit: pageSize, offset, searchText: "" };
+
+    // Try variants in order; stop at first success
+    const variants = [
+      () => postJson({ ...baseBody, appliedFacets: {} }),
+      () => postJson({ ...baseBody, appliedFacets: [] }),
+      () => postForm({ ...baseBody }, "{}"),
+      () => postForm({ ...baseBody }, "[]")
+    ];
+
+    let lastErr = null;
+    for (const v of variants) {
+      try {
+        return await v();
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+
+    throw lastErr || new Error("All Workday POST variants failed");
+  }
+
   const postings = [];
   let offset = 0;
   let total = null;
 
   while (true) {
-    // ✅ key compatibility detail: appliedFacets MUST be an array for many tenants
-    const body = {
-      appliedFacets: [],
-      limit: pageSize,
-      offset,
-      searchText: ""
-    };
-
-    const data = await fetchJson(apiUrl, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-      timeoutMs: 30000,
-      retries: 6
-    });
+    const data = await fetchPage(offset);
 
     const page = extractPostings(data);
     if (total === null) total = extractTotal(data);
@@ -83,6 +122,8 @@ export async function scrapeWorkday({
 
     if (postings.length >= maxTotal) break;
     if (typeof total === "number" && offset >= total) break;
+
+    // If Workday gives fewer than requested, likely last page
     if (page.length < pageSize) break;
   }
 
@@ -133,4 +174,37 @@ export async function scrapeWorkday({
 
   console.log(`[${company.id}] workday fetched=${postings.length} total=${total ?? "unknown"}`);
   return jobs;
+}
+
+/**
+ * Minimal fetch+json helper with retries (self-contained so we don't depend on your http.mjs internals)
+ */
+async function fetchJsonWithRetries(url, init, retries = 5) {
+  let lastErr = null;
+
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(url, init);
+      const txt = await res.text();
+
+      if (!res.ok) {
+        const err = new Error(`HTTP ${res.status} for ${url}\n${txt}`);
+        err.status = res.status;
+        throw err;
+      }
+
+      // Workday returns JSON
+      return JSON.parse(txt);
+    } catch (e) {
+      lastErr = e;
+      // simple backoff
+      await sleep(400 * (i + 1));
+    }
+  }
+
+  throw lastErr;
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
 }
