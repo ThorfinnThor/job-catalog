@@ -1,16 +1,12 @@
-import { fetchJson } from "../lib/http.mjs";
+import { fetchTextWithCookies, fetchJson } from "../lib/http.mjs";
 import { cleanText, absoluteUrl } from "../lib/normalize.mjs";
 
 /**
- * Workday CXS adapter with robust fallbacks.
- *
- * Many Workday tenants:
- * - return HTTP 400 if you call /jobs with offset/limit as query params
- * - require POST with a specific payload shape
- *
- * Strategy:
- * 1) POST pagination using multiple payload variants (until one works)
- * 2) If POST always fails, try GET with no params (often returns a capped list like 500)
+ * Robust Workday adapter:
+ * - Prime cookies by loading the human careers page first (many tenants require this)
+ * - Call /wday/cxs/.../jobs with cookie + browser-like headers
+ * - Try POST paging with several payload variants
+ * - If POST paging fails, try GET once (capped list for some tenants)
  */
 export async function scrapeWorkday({
   company,
@@ -21,12 +17,50 @@ export async function scrapeWorkday({
   maxTotal = 10000
 }) {
   const scrapedAt = new Date().toISOString();
-  const apiBase = `https://${host}/wday/cxs/${tenant}/${site}/jobs`;
 
-  // Use the careersUrl to build human job links reliably (locale-aware)
+  // Human base for referer + link building (prefer locale path)
   const humanBase = (company.careersUrl || `https://${host}/en-US/${site}`).replace(/\/+$/, "");
 
-  // ------------- helpers -------------
+  // API endpoint
+  const apiBase = `https://${host}/wday/cxs/${tenant}/${site}/jobs`;
+
+  // 1) PRIME COOKIES (this is the critical fix)
+  let cookieJar = "";
+  try {
+    const primed = await fetchTextWithCookies(humanBase, cookieJar, {
+      method: "GET",
+      timeoutMs: 25000,
+      retries: 3
+    });
+    if (primed.cookies?.length) cookieJar = mergeCookies(cookieJar, primed.cookies);
+  } catch (e) {
+    // If priming fails, still try API; some tenants don't need cookies.
+    console.error(`[${company.id}] workday prime failed (continuing): ${e?.message || e}`);
+  }
+
+  const baseHeaders = {
+    accept: "application/json,text/plain,*/*",
+    "content-type": "application/json",
+    "x-requested-with": "XMLHttpRequest",
+    origin: `https://${host}`,
+    referer: `${humanBase}/`,
+    ...(cookieJar ? { cookie: cookieJar } : {})
+  };
+
+  const extractPostings = (data) => {
+    if (Array.isArray(data?.jobPostings)) return data.jobPostings;
+    if (Array.isArray(data?.items)) return data.items;
+    if (Array.isArray(data?.searchResults)) return data.searchResults;
+    return [];
+  };
+
+  const extractTotal = (data) => {
+    if (typeof data?.total === "number") return data.total;
+    if (typeof data?.totalResults === "number") return data.totalResults;
+    if (typeof data?.count === "number") return data.count;
+    return null;
+  };
+
   const mapPostingToJob = (p) => {
     const title = cleanText(p?.title) || "Unknown title";
 
@@ -36,8 +70,6 @@ export async function scrapeWorkday({
       null;
 
     const externalPath = p?.externalPath || p?.path || null;
-
-    // Build job URL with the locale-aware human base
     const url = externalPath ? absoluteUrl(humanBase, externalPath) : humanBase;
 
     const desc =
@@ -47,7 +79,6 @@ export async function scrapeWorkday({
 
     const postedAt = p?.postedOn || p?.postedDate || null;
 
-    // Try to build a stable id
     const reqId =
       p?.bulletFields?.reqId ||
       p?.reqId ||
@@ -62,7 +93,7 @@ export async function scrapeWorkday({
       company,
       title,
       location,
-      workplace: null, // enriched later
+      workplace: null,
       employmentType: cleanText(p?.timeType) || null,
       department: cleanText(p?.jobFamily) || null,
       team: null,
@@ -75,34 +106,13 @@ export async function scrapeWorkday({
     };
   };
 
-  const extractPostings = (data) => {
-    if (Array.isArray(data?.jobPostings)) return data.jobPostings;
-    if (Array.isArray(data?.items)) return data.items;
-    // some tenants: data.searchResults
-    if (Array.isArray(data?.searchResults)) return data.searchResults;
-    return [];
-  };
-
-  const extractTotal = (data) => {
-    if (typeof data?.total === "number") return data.total;
-    if (typeof data?.totalResults === "number") return data.totalResults;
-    if (typeof data?.count === "number") return data.count;
-    return null;
-  };
-
-  // ------------- POST pagination (try variants) -------------
   const payloadVariants = (offset) => ([
-    // Variant A (common)
+    // Common shapes across tenants
     { limit: pageSize, offset, searchText: "", appliedFacets: {} },
-
-    // Variant B (some tenants require array)
     { limit: pageSize, offset, searchText: "", appliedFacets: [] },
-
-    // Variant C (some tenants accept "filters")
-    { limit: pageSize, offset, searchText: "", filters: {} },
-
-    // Variant D (minimal)
-    { limit: pageSize, offset, searchText: "" }
+    { limit: pageSize, offset, searchText: "" },
+    // Some tenants are picky about empty strings vs null
+    { limit: pageSize, offset, searchText: null, appliedFacets: {} },
   ]);
 
   async function tryPostPaging() {
@@ -114,32 +124,23 @@ export async function scrapeWorkday({
       let pageData = null;
       let lastErr = null;
 
-      // try each payload shape until one works
       for (const bodyObj of payloadVariants(offset)) {
         try {
           pageData = await fetchJson(apiBase, {
             method: "POST",
-            headers: {
-              "content-type": "application/json",
-              accept: "application/json,text/plain,*/*"
-              // IMPORTANT: do NOT send Origin/Referer (some tenants 400 on mismatch)
-            },
+            headers: baseHeaders,
             body: JSON.stringify(bodyObj),
             timeoutMs: 25000,
-            retries: 6
+            retries: 4
           });
           lastErr = null;
           break;
         } catch (e) {
           lastErr = e;
-          // try next variant
         }
       }
 
-      if (!pageData) {
-        // none of the payload variants worked
-        throw lastErr || new Error("Workday POST failed for all payload variants");
-      }
+      if (!pageData) throw lastErr || new Error("Workday POST failed for all payload variants");
 
       const pageItems = extractPostings(pageData);
       if (total === null) total = extractTotal(pageData);
@@ -157,21 +158,24 @@ export async function scrapeWorkday({
     return { postings: all, total };
   }
 
-  // ------------- GET fallback (no params) -------------
   async function tryGetOnce() {
+    // Some tenants allow GET but cap results. Still needs cookies/headers.
     const data = await fetchJson(apiBase, {
       method: "GET",
       headers: {
-        accept: "application/json,text/plain,*/*"
+        accept: "application/json,text/plain,*/*",
+        "x-requested-with": "XMLHttpRequest",
+        origin: `https://${host}`,
+        referer: `${humanBase}/`,
+        ...(cookieJar ? { cookie: cookieJar } : {})
       },
       timeoutMs: 25000,
-      retries: 6
+      retries: 4
     });
 
     return { postings: extractPostings(data), total: extractTotal(data) };
   }
 
-  // ------------- run strategy -------------
   let postings = [];
   let total = null;
 
@@ -183,7 +187,6 @@ export async function scrapeWorkday({
     console.error(
       `[${company.id}] Workday POST paging failed; trying GET fallback (reason: ${e?.message || e})`
     );
-
     const r = await tryGetOnce();
     postings = r.postings;
     total = r.total;
@@ -191,9 +194,27 @@ export async function scrapeWorkday({
 
   const jobs = postings.map(mapPostingToJob);
 
-  console.log(
-    `[${company.id}] workday fetched=${postings.length} total=${total ?? "unknown"}`
-  );
-
+  console.log(`[${company.id}] workday fetched=${postings.length} total=${total ?? "unknown"}`);
   return jobs;
+}
+
+function mergeCookies(existingJar, setCookieHeaders) {
+  const jarMap = new Map();
+
+  for (const part of String(existingJar || "").split(";")) {
+    const kv = part.trim();
+    if (!kv) continue;
+    const eq = kv.indexOf("=");
+    if (eq > 0) jarMap.set(kv.slice(0, eq), kv.slice(eq + 1));
+  }
+
+  for (const sc of setCookieHeaders) {
+    const nv = String(sc).split(";")[0].trim();
+    const eq = nv.indexOf("=");
+    if (eq > 0) jarMap.set(nv.slice(0, eq), nv.slice(eq + 1));
+  }
+
+  return Array.from(jarMap.entries())
+    .map(([k, v]) => `${k}=${v}`)
+    .join("; ");
 }
