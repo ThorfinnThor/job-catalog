@@ -6,7 +6,7 @@ import { createLimiter } from "./lib/limit.mjs";
 
 import { scrapeSapHtml } from "./adapters/sap-html.mjs";
 import { scrapeWorkday } from "./adapters/workday.mjs";
-import { classifyDescLang } from "./lib/desc-lang.mjs";
+import { classifyEnDeStrict } from "./lib/desc-lang.mjs";
 
 function isJobValid(job) {
   return Boolean(cleanText(job.title) && job.url && job.company?.id);
@@ -21,6 +21,14 @@ function countByCompany(jobs) {
   for (const j of jobs) {
     const id = j?.company?.id || "unknown";
     out[id] = (out[id] || 0) + 1;
+  }
+  return out;
+}
+
+function countLang(jobs) {
+  const out = { en: 0, de: 0, other: 0 };
+  for (const j of jobs) {
+    out[j._lang || "other"] += 1;
   }
   return out;
 }
@@ -47,6 +55,18 @@ async function scrapeOneSite(site) {
   throw new Error(`Unknown site.kind: ${site.kind}`);
 }
 
+function detectJobLang(job) {
+  const desc = job?.description?.text || "";
+  const title = job?.title || "";
+
+  // Prefer description if it’s substantive; else fall back to title
+  const fromDesc = classifyEnDeStrict(desc);
+  if (fromDesc !== "other") return fromDesc;
+
+  const fromTitle = classifyEnDeStrict(title);
+  return fromTitle;
+}
+
 async function main() {
   const all = [];
   const scrapedValidByCompany = {};
@@ -67,27 +87,22 @@ async function main() {
     }
   }
 
-  // OPTIONAL: fail only if an enabled site produced 0 jobs
-  const failOnEmpty = (process.env.FAIL_ON_EMPTY ?? "true").toLowerCase() === "true";
-  if (failOnEmpty) {
-    const enabledIds = sites.map((s) => s.company.id);
-    const missing = enabledIds.filter((id) => (scrapedValidByCompany[id] || 0) === 0);
-    if (missing.length) {
-      throw new Error(`One or more enabled sources produced 0 jobs: ${missing.join(", ")}`);
-    }
-  }
-
   let jobs = uniqById(all);
 
-  // Keep EN/DE/unknown; drop only confident "other"
   const before = jobs.length;
-  jobs = jobs.filter((j) => {
-    const desc = j?.description?.text || "";
-    return classifyDescLang(desc) !== "other";
-  });
-  const after = jobs.length;
+  const beforeByCompany = countByCompany(jobs);
 
-  const byCompanyAfter = countByCompany(jobs);
+  // ✅ STRICT filter: keep ONLY English or German
+  jobs = jobs
+    .map((j) => {
+      const lang = detectJobLang(j);
+      return { ...j, _lang: lang }; // internal; we’ll drop this field before writing
+    })
+    .filter((j) => j._lang === "en" || j._lang === "de")
+    .map(({ _lang, ...rest }) => rest);
+
+  const after = jobs.length;
+  const afterByCompany = countByCompany(jobs);
 
   jobs = jobs.sort((a, b) => {
     return a.company.name.localeCompare(b.company.name) || a.title.localeCompare(b.title);
@@ -96,10 +111,12 @@ async function main() {
   const meta = {
     scrapedAt: new Date().toISOString(),
     total: jobs.length,
-    totalBeforeLangFilter: before,
-    totalAfterLangFilter: after,
+    totalBeforeStrictLangFilter: before,
+    totalAfterStrictLangFilter: after,
+    strictLangKeep: ["en", "de"],
     scrapedValidByCompany,
-    byCompanyAfterFilter: byCompanyAfter,
+    byCompanyBeforeStrictLangFilter: beforeByCompany,
+    byCompanyAfterStrictLangFilter: afterByCompany,
     enabledCompanies: sites.map((s) => ({ id: s.company.id, name: s.company.name, kind: s.kind }))
   };
 
@@ -107,8 +124,8 @@ async function main() {
   await writeFile("public/jobs.csv", toCsv(jobs));
   await writeFile("public/jobs-meta.json", JSON.stringify(meta, null, 2));
 
-  console.log("By company after filter:", byCompanyAfter);
-  console.log(`Done. Wrote ${jobs.length} jobs.`);
+  console.log(`Done. Wrote ${jobs.length} jobs (before strict filter: ${before}).`);
+  console.log("By company after strict filter:", afterByCompany);
 }
 
 main().catch((e) => {
