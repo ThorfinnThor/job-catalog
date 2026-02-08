@@ -2,25 +2,24 @@ import { fetchJson } from "../lib/http.mjs";
 import { cleanText, absoluteUrl } from "../lib/normalize.mjs";
 
 /**
- * Workday CXS adapter (stable mode)
- *
- * Uses the simplest call that tends to work across tenants:
- *   GET https://{host}/wday/cxs/{tenant}/{site}/jobs
- *
- * Many tenants cap this to ~500 results. That's OK for now; it gets the pipeline working again.
- * We can add tenant-specific pagination later once we inspect real response shapes.
+ * Workday adapter (simple / stable)
+ * - Single GET request to the CXS endpoint
+ * - Most tenants return up to ~500 postings (server-side cap)
+ * - This is the version that tends to "just work"
  */
 export async function scrapeWorkday({ company, host, tenant, site }) {
   const scrapedAt = new Date().toISOString();
 
   const apiUrl = `https://${host}/wday/cxs/${tenant}/${site}/jobs`;
+
+  // Use careersUrl for building clickable job URLs
+  // Expect careersUrl like: https://<host>/en-US/<site>
   const humanBase = (company.careersUrl || `https://${host}/en-US/${site}`).replace(/\/+$/, "");
 
   const data = await fetchJson(apiUrl, {
     method: "GET",
     headers: {
       accept: "application/json,text/plain,*/*",
-      // Keep headers minimal; some tenants reject "too clever" headers.
       "accept-language": "en-US,en;q=0.9"
     },
     timeoutMs: 30000,
@@ -44,13 +43,14 @@ export async function scrapeWorkday({ company, host, tenant, site }) {
     const externalPath = p?.externalPath || p?.path || null;
     const url = externalPath ? absoluteUrl(humanBase, externalPath) : humanBase;
 
-    const desc =
+    const descriptionText =
       cleanText(p?.jobDescription) ||
       cleanText(p?.description) ||
       null;
 
     const postedAt = p?.postedOn || p?.postedDate || null;
 
+    // stable-ish identifier (not always present)
     const reqId =
       p?.bulletFields?.reqId ||
       p?.reqId ||
@@ -65,19 +65,19 @@ export async function scrapeWorkday({ company, host, tenant, site }) {
       company,
       title,
       location,
-      workplace: null, // enriched later in scrape-jobs.mjs
+      workplace: null,
       employmentType: cleanText(p?.timeType) || null,
       department: cleanText(p?.jobFamily) || null,
       team: null,
       url,
       applyUrl: url,
-      description: { text: desc, html: null },
+      description: { text: descriptionText, html: null },
       source: { kind: "workday_api", raw: { host, tenant, site } },
       postedAt,
       scrapedAt
     };
   });
 
-  console.log(`[${company.id}] workday fetched=${jobs.length} (stable mode; may be capped)`);
+  console.log(`[${company.id}] workday fetched=${jobs.length} (likely capped)`);
   return jobs;
 }
