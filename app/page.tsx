@@ -1,40 +1,33 @@
-import Link from "next/link";
 import SearchClient from "@/components/SearchClient";
-import { getJobs, getJobsMeta } from "@/lib/jobs";
+import { getAllJobs, getFacets } from "@/lib/jobs";
+import meta from "@/public/jobs-meta.json";
 
-export default async function HomePage() {
-  const jobs = await getJobs();
-  const meta = await getJobsMeta();
+export const metadata = {
+  title: "Job Scout MVP",
+  description:
+    "Aggregated jobs from multiple company career pages — refreshed via GitHub Actions and served on Vercel.",
+};
+
+export default function Page() {
+  const jobs = getAllJobs();
+  const facets = getFacets(jobs);
 
   return (
-    <main className="container">
-      <div className="header">
-        <div className="brand">
-          <h1 className="h1">Job Scout MVP</h1>
-          <p className="sub">
-            Aggregated jobs from BioNTech, GSK, and Immatics — refreshed via GitHub Actions and served on Vercel.
+    <main className="mx-auto max-w-6xl px-4 py-10">
+      <div className="flex items-start justify-between gap-6 flex-col md:flex-row">
+        <div>
+          <h1 className="text-3xl font-bold">Job Scout MVP</h1>
+          <p className="mt-2 text-white/70">
+            Aggregated jobs — refreshed via GitHub Actions and served on Vercel.
           </p>
         </div>
-
-        <div className="badge">
-          <span>Total: {jobs.length}</span>
-          <span>·</span>
-          <span>
-            Updated: {meta?.scrapedAt ? new Date(meta.scrapedAt).toLocaleString() : "unknown"}
-          </span>
+        <div className="text-sm text-white/60 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+          Total: <b className="text-white/80">{jobs.length}</b>
         </div>
       </div>
 
-      <SearchClient jobs={jobs} />
-
-      <div className="footer">
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 14 }}>
-          <Link href="/jobs.json">jobs.json</Link>
-          <Link href="/jobs.csv">jobs.csv</Link>
-        </div>
-        <div style={{ marginTop: 10 }}>
-          This is an MVP. For production use, ensure you comply with each site’s terms of service and robots.txt.
-        </div>
+      <div className="mt-8">
+        <SearchClient jobs={jobs} facets={facets} updatedAt={(meta as any)?.scrapedAt || null} />
       </div>
     </main>
   );
