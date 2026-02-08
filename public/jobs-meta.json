@@ -1,23 +1,32 @@
 {
-  "scrapedAt": "2026-02-08T16:22:25.870Z",
+  "scrapedAt": "2026-02-08T16:26:15.501Z",
   "total": 0,
-  "totalBeforeStrictLangFilter": 0,
+  "totalBeforeStrictLangFilter": 145,
   "totalAfterStrictLangFilter": 0,
   "strictLangKeep": [
     "en",
     "de"
   ],
   "scrapedValidByCompany": {
-    "immatics": 0,
-    "gsk": 0,
-    "pfizer": 0,
-    "jnj": 0,
-    "roche": 0,
-    "novartis": 0,
-    "sanofi": 0,
-    "astrazeneca": 0
+    "immatics": 5,
+    "gsk": 20,
+    "pfizer": 20,
+    "jnj": 20,
+    "roche": 20,
+    "novartis": 20,
+    "sanofi": 20,
+    "astrazeneca": 20
   },
-  "byCompanyBeforeStrictLangFilter": {},
+  "byCompanyBeforeStrictLangFilter": {
+    "immatics": 5,
+    "gsk": 20,
+    "pfizer": 20,
+    "jnj": 20,
+    "roche": 20,
+    "novartis": 20,
+    "sanofi": 20,
+    "astrazeneca": 20
+  },
   "byCompanyAfterStrictLangFilter": {},
   "enabledCompanies": [
     {
