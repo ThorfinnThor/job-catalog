@@ -1,12 +1,14 @@
-import { fetchTextWithCookies, fetchJson } from "../lib/http.mjs";
+import { fetchJson } from "../lib/http.mjs";
 import { cleanText, absoluteUrl } from "../lib/normalize.mjs";
 
 /**
- * Robust Workday adapter:
- * - Prime cookies by loading the human careers page first (many tenants require this)
- * - Call /wday/cxs/.../jobs with cookie + browser-like headers
- * - Try POST paging with several payload variants
- * - If POST paging fails, try GET once (capped list for some tenants)
+ * Workday CXS job search
+ * Most tenants expect:
+ *   POST https://{host}/wday/cxs/{tenant}/{site}/jobs
+ * with JSON body like:
+ *   {"appliedFacets":[],"limit":50,"offset":0,"searchText":""}
+ *
+ * Pagination = increase offset in the BODY (not query string).
  */
 export async function scrapeWorkday({
   company,
@@ -18,33 +20,22 @@ export async function scrapeWorkday({
 }) {
   const scrapedAt = new Date().toISOString();
 
-  // Human base for referer + link building (prefer locale path)
+  const apiUrl = `https://${host}/wday/cxs/${tenant}/${site}/jobs`;
+
+  // Important: use a locale human URL for Referer/Origin consistency
+  // If you set careersUrl in sites.mjs, we use it; otherwise guess en-US.
   const humanBase = (company.careersUrl || `https://${host}/en-US/${site}`).replace(/\/+$/, "");
 
-  // API endpoint
-  const apiBase = `https://${host}/wday/cxs/${tenant}/${site}/jobs`;
-
-  // 1) PRIME COOKIES (this is the critical fix)
-  let cookieJar = "";
-  try {
-    const primed = await fetchTextWithCookies(humanBase, cookieJar, {
-      method: "GET",
-      timeoutMs: 25000,
-      retries: 3
-    });
-    if (primed.cookies?.length) cookieJar = mergeCookies(cookieJar, primed.cookies);
-  } catch (e) {
-    // If priming fails, still try API; some tenants don't need cookies.
-    console.error(`[${company.id}] workday prime failed (continuing): ${e?.message || e}`);
-  }
-
-  const baseHeaders = {
-    accept: "application/json,text/plain,*/*",
-    "content-type": "application/json",
+  const headers = {
+    accept: "application/json, text/plain, */*",
+    "content-type": "application/json;charset=UTF-8",
     "x-requested-with": "XMLHttpRequest",
+    "accept-language": "en-US,en;q=0.9",
+    // Workday tenants often behave better with a browser UA
+    "user-agent":
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
     origin: `https://${host}`,
-    referer: `${humanBase}/`,
-    ...(cookieJar ? { cookie: cookieJar } : {})
+    referer: `${humanBase}/`
   };
 
   const extractPostings = (data) => {
@@ -61,7 +52,41 @@ export async function scrapeWorkday({
     return null;
   };
 
-  const mapPostingToJob = (p) => {
+  const postings = [];
+  let offset = 0;
+  let total = null;
+
+  while (true) {
+    // ✅ key compatibility detail: appliedFacets MUST be an array for many tenants
+    const body = {
+      appliedFacets: [],
+      limit: pageSize,
+      offset,
+      searchText: ""
+    };
+
+    const data = await fetchJson(apiUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      timeoutMs: 30000,
+      retries: 6
+    });
+
+    const page = extractPostings(data);
+    if (total === null) total = extractTotal(data);
+
+    if (!page.length) break;
+
+    postings.push(...page);
+    offset += page.length;
+
+    if (postings.length >= maxTotal) break;
+    if (typeof total === "number" && offset >= total) break;
+    if (page.length < pageSize) break;
+  }
+
+  const jobs = postings.map((p) => {
     const title = cleanText(p?.title) || "Unknown title";
 
     const location =
@@ -93,7 +118,7 @@ export async function scrapeWorkday({
       company,
       title,
       location,
-      workplace: null,
+      workplace: null, // enriched later in scrape-jobs.mjs
       employmentType: cleanText(p?.timeType) || null,
       department: cleanText(p?.jobFamily) || null,
       team: null,
@@ -104,117 +129,8 @@ export async function scrapeWorkday({
       postedAt,
       scrapedAt
     };
-  };
-
-  const payloadVariants = (offset) => ([
-    // Common shapes across tenants
-    { limit: pageSize, offset, searchText: "", appliedFacets: {} },
-    { limit: pageSize, offset, searchText: "", appliedFacets: [] },
-    { limit: pageSize, offset, searchText: "" },
-    // Some tenants are picky about empty strings vs null
-    { limit: pageSize, offset, searchText: null, appliedFacets: {} },
-  ]);
-
-  async function tryPostPaging() {
-    let offset = 0;
-    let total = null;
-    const all = [];
-
-    while (true) {
-      let pageData = null;
-      let lastErr = null;
-
-      for (const bodyObj of payloadVariants(offset)) {
-        try {
-          pageData = await fetchJson(apiBase, {
-            method: "POST",
-            headers: baseHeaders,
-            body: JSON.stringify(bodyObj),
-            timeoutMs: 25000,
-            retries: 4
-          });
-          lastErr = null;
-          break;
-        } catch (e) {
-          lastErr = e;
-        }
-      }
-
-      if (!pageData) throw lastErr || new Error("Workday POST failed for all payload variants");
-
-      const pageItems = extractPostings(pageData);
-      if (total === null) total = extractTotal(pageData);
-
-      if (!pageItems.length) break;
-
-      all.push(...pageItems);
-      offset += pageItems.length;
-
-      if (all.length >= maxTotal) break;
-      if (typeof total === "number" && offset >= total) break;
-      if (pageItems.length < pageSize) break;
-    }
-
-    return { postings: all, total };
-  }
-
-  async function tryGetOnce() {
-    // Some tenants allow GET but cap results. Still needs cookies/headers.
-    const data = await fetchJson(apiBase, {
-      method: "GET",
-      headers: {
-        accept: "application/json,text/plain,*/*",
-        "x-requested-with": "XMLHttpRequest",
-        origin: `https://${host}`,
-        referer: `${humanBase}/`,
-        ...(cookieJar ? { cookie: cookieJar } : {})
-      },
-      timeoutMs: 25000,
-      retries: 4
-    });
-
-    return { postings: extractPostings(data), total: extractTotal(data) };
-  }
-
-  let postings = [];
-  let total = null;
-
-  try {
-    const r = await tryPostPaging();
-    postings = r.postings;
-    total = r.total;
-  } catch (e) {
-    console.error(
-      `[${company.id}] Workday POST paging failed; trying GET fallback (reason: ${e?.message || e})`
-    );
-    const r = await tryGetOnce();
-    postings = r.postings;
-    total = r.total;
-  }
-
-  const jobs = postings.map(mapPostingToJob);
+  });
 
   console.log(`[${company.id}] workday fetched=${postings.length} total=${total ?? "unknown"}`);
   return jobs;
-}
-
-function mergeCookies(existingJar, setCookieHeaders) {
-  const jarMap = new Map();
-
-  for (const part of String(existingJar || "").split(";")) {
-    const kv = part.trim();
-    if (!kv) continue;
-    const eq = kv.indexOf("=");
-    if (eq > 0) jarMap.set(kv.slice(0, eq), kv.slice(eq + 1));
-  }
-
-  for (const sc of setCookieHeaders) {
-    const nv = String(sc).split(";")[0].trim();
-    const eq = nv.indexOf("=");
-    if (eq > 0) jarMap.set(nv.slice(0, eq), nv.slice(eq + 1));
-  }
-
-  return Array.from(jarMap.entries())
-    .map(([k, v]) => `${k}=${v}`)
-    .join("; ");
 }
