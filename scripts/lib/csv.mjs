@@ -1,47 +1,60 @@
-function escapeCsv(v) {
-  const s = String(v ?? "");
-  if (/[,"\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+function q(v) {
+  if (v === null || v === undefined) return "";
+  const s = String(v);
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }
 
 export function toCsv(jobs) {
-  const headers = [
+  const cols = [
     "id",
     "companyId",
     "companyName",
     "title",
-    "location",
+    "language",
+    "locationRaw",
+    "country",
+    "region",
+    "city",
+    "locationConfidence",
     "workplace",
+    "workplaceConfidence",
     "employmentType",
     "department",
-    "team",
     "url",
     "applyUrl",
     "postedAt",
-    "scrapedAt"
+    "scrapedAt",
+    "description"
   ];
 
-  const lines = [
-    headers.join(","),
-    ...jobs.map((j) => {
-      const row = {
-        id: j.id,
-        companyId: j.company.id,
-        companyName: j.company.name,
-        title: j.title,
-        location: j.location,
-        workplace: j.workplace,
-        employmentType: j.employmentType,
-        department: j.department,
-        team: j.team,
-        url: j.url,
-        applyUrl: j.applyUrl,
-        postedAt: j.postedAt,
-        scrapedAt: j.scrapedAt
-      };
-      return headers.map((h) => escapeCsv(row[h])).join(",");
-    })
-  ];
+  const lines = [cols.join(",")];
 
-  return lines.join("\n") + "\n";
+  for (const j of jobs) {
+    const row = [
+      j.id,
+      j.company?.id,
+      j.company?.name,
+      j.title,
+      j.language,
+      j.location,
+      j.locationParsed?.country,
+      j.locationParsed?.region,
+      j.locationParsed?.city,
+      j.locationConfidence,
+      j.workplace,
+      j.workplaceConfidence,
+      j.employmentType,
+      j.department,
+      j.url,
+      j.applyUrl,
+      j.postedAt,
+      j.scrapedAt,
+      (j.description?.text || "").slice(0, 2000) // keep CSV manageable
+    ].map(q);
+
+    lines.push(row.join(","));
+  }
+
+  return lines.join("\n");
 }
