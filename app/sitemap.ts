@@ -1,19 +1,16 @@
-import { getJobs } from "@/lib/jobs";
-import type { MetadataRoute } from "next";
+import { getAllJobs } from "@/lib/jobs";
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://example.vercel.app";
-  const jobs = await getJobs();
+export default function sitemap() {
+  const jobs = getAllJobs();
+  const baseUrl = "https://job-catalog.vercel.app"; // change if you use a custom domain
 
-  const now = new Date().toISOString();
-
-  return [
-    { url: `${base}/`, lastModified: now, changeFrequency: "daily", priority: 1.0 },
+  const urls = [
+    { url: `${baseUrl}/`, lastModified: new Date() },
     ...jobs.map((j) => ({
-      url: `${base}/jobs/${encodeURIComponent(j.id)}`,
-      lastModified: j.scrapedAt ?? now,
-      changeFrequency: "daily" as const,
-      priority: 0.7
-    }))
+      url: `${baseUrl}/jobs/${encodeURIComponent(j.id)}`,
+      lastModified: j.scrapedAt ? new Date(j.scrapedAt) : new Date(),
+    })),
   ];
+
+  return urls;
 }
