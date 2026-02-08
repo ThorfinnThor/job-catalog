@@ -1,75 +1,83 @@
 import { cleanText } from "./normalize.mjs";
 
 /**
- * Classify description language into:
- * - "en" (English)
- * - "de" (German)
- * - "other" (confidently NOT English/German)
- * - "unknown" (can't tell reliably)
+ * STRICT language classification:
+ * - "en" or "de" only if we're confident it is English/German
+ * - otherwise "other"
  *
- * This is designed for filtering:
- *   KEEP: en, de, unknown
- *   DROP: other
+ * Uses:
+ * 1) script detection (CJK, Cyrillic, Arabic, etc.) => other
+ * 2) EN/DE stopword scoring with word boundaries
  */
-export function classifyDescLang(text) {
+export function classifyEnDeStrict(text) {
   const raw = cleanText(text || "");
-  if (!raw) return "unknown";
+  if (!raw) return "other";
 
-  // Very short text isn't reliable for language detection
-  if (raw.length < 180) return "unknown";
+  // If text contains strong non-Latin scripts, it is not EN/DE
+  if (containsNonLatinScript(raw)) return "other";
+
+  // Too short => not enough evidence => treat as other (STRICT)
+  if (raw.length < 160) return "other";
 
   const t = raw.toLowerCase();
 
-  // Strong German signal (umlauts)
-  const hasUmlaut = /[äöüß]/.test(t);
+  // German umlaut bonus
+  const umlautBonus = /[äöüß]/.test(t) ? 3 : 0;
 
-  // High-signal stopwords (word-boundary matching so punctuation doesn't break it)
   const deWords = [
     "und", "der", "die", "das", "nicht", "mit", "für", "auf", "als", "wir", "sie",
     "werden", "können", "aufgaben", "anforderungen", "voraussetzungen", "bewerbung",
-    "stelle", "position", "verantwortung", "erfahrung"
+    "stelle", "position", "verantwortung", "erfahrung", "kenntnisse", "team", "ihnen"
   ];
 
   const enWords = [
     "the", "and", "with", "you", "we", "will", "role", "position",
     "responsibilities", "requirements", "qualification", "qualifications",
-    "experience", "apply", "about"
+    "experience", "apply", "about", "skills", "team"
   ];
 
-  // A few "other language" signals to confidently classify as OTHER
-  // (We keep this conservative — only strong, common words.)
-  const otherSignals = [
-    // French
-    " le ", " la ", " les ", " des ", " pour ", " vous ", " nous ", " poste ", " responsabilités",
-    // Spanish
-    " el ", " la ", " los ", " las ", " para ", " usted ", " nosotros ", " responsabilidades", " requisitos",
-    // Italian
-    " il ", " lo ", " gli ", " per ", " voi ", " noi ", " responsabilità", " requisiti"
-  ];
-
-  const deScore = (hasUmlaut ? 3 : 0) + countWordHits(t, deWords);
+  const deScore = umlautBonus + countWordHits(t, deWords);
   const enScore = countWordHits(t, enWords);
 
-  // Decide EN/DE if we have strong evidence
-  if (deScore >= 7 && deScore >= enScore) return "de";
-  if (enScore >= 7 && enScore >= deScore) return "en";
+  // Strict thresholds
+  // - Short/medium texts require stronger evidence
+  // - Very long texts can pass with slightly lower evidence
+  const isLong = raw.length >= 900;
 
-  // If long description, allow medium confidence for EN/DE
-  if (raw.length >= 900) {
-    if (deScore >= 5 && deScore >= enScore) return "de";
-    if (enScore >= 5 && enScore >= deScore) return "en";
+  if (!isLong) {
+    if (deScore >= 7 && deScore >= enScore + 1) return "de";
+    if (enScore >= 7 && enScore >= deScore + 1) return "en";
+    return "other";
   }
 
-  // Now decide OTHER only if we have evidence AGAINST EN/DE:
-  const otherScore = countSubstringHits(t, otherSignals);
+  // Long descriptions: allow slightly lower threshold
+  if (deScore >= 5 && deScore >= enScore) return "de";
+  if (enScore >= 5 && enScore >= deScore) return "en";
 
-  // "Other" only if:
-  // - lots of other-language signals
-  // - AND EN/DE scores are low
-  if (otherScore >= 6 && deScore <= 3 && enScore <= 3) return "other";
+  return "other";
+}
 
-  // Otherwise we don't know (keep it)
-  return "unknown";
+/**
+ * Detects scripts that strongly indicate the text is not EN/DE.
+ * We allow Latin (incl. accents), digits, punctuation.
+ */
+function containsNonLatinScript(s) {
+  // CJK ideographs (Chinese)
+  if (/\p{Script=Han}/u.test(s)) return true;
+  // Japanese
+  if (/\p{Script=Hiragana}|\p{Script=Katakana}/u.test(s)) return true;
+  // Korean
+  if (/\p{Script=Hangul}/u.test(s)) return true;
+  // Cyrillic
+  if (/\p{Script=Cyrillic}/u.test(s)) return true;
+  // Arabic
+  if (/\p{Script=Arabic}/u.test(s)) return true;
+  // Hebrew
+  if (/\p{Script=Hebrew}/u.test(s)) return true;
+  // Thai
+  if (/\p{Script=Thai}/u.test(s)) return true;
+
+  return false;
 }
 
 function countWordHits(text, words) {
@@ -77,14 +85,6 @@ function countWordHits(text, words) {
   for (const w of words) {
     const re = new RegExp(`\\b${escapeRe(w)}\\b`, "i");
     if (re.test(text)) score += 1;
-  }
-  return score;
-}
-
-function countSubstringHits(text, needles) {
-  let score = 0;
-  for (const n of needles) {
-    if (text.includes(n)) score += 1;
   }
   return score;
 }
