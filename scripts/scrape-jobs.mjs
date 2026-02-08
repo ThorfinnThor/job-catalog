@@ -16,6 +16,15 @@ function uniqById(items) {
   return Array.from(new Map(items.map((x) => [x.id, x])).values());
 }
 
+function countByCompany(jobs) {
+  const out = {};
+  for (const j of jobs) {
+    const id = j?.company?.id || "unknown";
+    out[id] = (out[id] || 0) + 1;
+  }
+  return out;
+}
+
 async function scrapeOneSite(site) {
   if (site.kind === "sap_html" || site.kind === "biontech_html" || site.kind === "sap") {
     return await scrapeSapHtml({
@@ -38,15 +47,6 @@ async function scrapeOneSite(site) {
   throw new Error(`Unknown site.kind: ${site.kind}`);
 }
 
-function countByCompany(jobs) {
-  const out = {};
-  for (const j of jobs) {
-    const id = j?.company?.id || "unknown";
-    out[id] = (out[id] || 0) + 1;
-  }
-  return out;
-}
-
 async function main() {
   const all = [];
   const scrapedValidByCompany = {};
@@ -67,24 +67,25 @@ async function main() {
     }
   }
 
-  // ✅ HARD FAIL if SAP sources are empty (prevents silent bad deploys)
-  const required = ["biontech", "boehringer"];
-  const missing = required.filter((id) => (scrapedValidByCompany[id] || 0) === 0);
-  if (missing.length) {
-    throw new Error(
-      `One or more required sources produced 0 jobs: ${missing.join(
-        ", "
-      )}. Check public/debug-<company>-list.html in the repo for the HTML GitHub Actions received.`
-    );
+  // OPTIONAL: fail only if an enabled site produced 0 jobs
+  const failOnEmpty = (process.env.FAIL_ON_EMPTY ?? "true").toLowerCase() === "true";
+  if (failOnEmpty) {
+    const enabledIds = sites.map((s) => s.company.id);
+    const missing = enabledIds.filter((id) => (scrapedValidByCompany[id] || 0) === 0);
+    if (missing.length) {
+      throw new Error(`One or more enabled sources produced 0 jobs: ${missing.join(", ")}`);
+    }
   }
 
   let jobs = uniqById(all);
 
   // Keep EN/DE/unknown; drop only confident "other"
+  const before = jobs.length;
   jobs = jobs.filter((j) => {
     const desc = j?.description?.text || "";
     return classifyDescLang(desc) !== "other";
   });
+  const after = jobs.length;
 
   const byCompanyAfter = countByCompany(jobs);
 
@@ -95,8 +96,11 @@ async function main() {
   const meta = {
     scrapedAt: new Date().toISOString(),
     total: jobs.length,
+    totalBeforeLangFilter: before,
+    totalAfterLangFilter: after,
     scrapedValidByCompany,
-    byCompanyAfterFilter: byCompanyAfter
+    byCompanyAfterFilter: byCompanyAfter,
+    enabledCompanies: sites.map((s) => ({ id: s.company.id, name: s.company.name, kind: s.kind }))
   };
 
   await writeFile("public/jobs.json", JSON.stringify(jobs, null, 2));
