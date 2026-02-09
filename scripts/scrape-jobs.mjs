@@ -1,5 +1,5 @@
-import { fetchJson } from "../lib/http.mjs";
-import { cleanText, absoluteUrl } from "../lib/normalize.mjs";
+import { fetchJson } from "./lib/http.mjs";
+import { cleanText, absoluteUrl } from "./lib/normalize.mjs";
 
 /**
  * Workday adapter (simple / stable)
