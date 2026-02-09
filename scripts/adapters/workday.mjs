@@ -32,15 +32,33 @@ export async function scrapeWorkday({
   const page = await context.newPage();
 
   try {
-    // Wait for the site's real jobs request
-    const reqPromise = page.waitForRequest(
-      (req) => req.url().includes(apiPath),
-      { timeout: 60000 }
-    );
+    // Workday job search endpoints frequently do a CORS preflight (OPTIONS) before the
+    // actual jobs fetch (typically a POST with JSON body). If we accidentally capture the
+    // preflight (or a lightweight GET without parameters) and replay it, Workday replies
+    // with HTTP 400 (exactly what you're seeing across multiple tenants).
+    //
+    // To make this robust across tenants and avoid races, we record all matching requests
+    // during page load, then pick the first *real* data request (POST-with-body), with a
+    // safe fallback to a GET if a tenant truly uses GET.
+    const candidates = [];
+    const onReq = (req) => {
+      if (isWorkdayJobsAnyRequest(req, apiPath)) candidates.push(req);
+    };
+    page.on("request", onReq);
 
     await page.goto(humanBase, { waitUntil: "domcontentloaded", timeout: 60000 });
+    await page.waitForLoadState("networkidle", { timeout: 60000 }).catch(() => {});
 
-    const firstReq = await reqPromise;
+    page.off("request", onReq);
+
+    const firstReq =
+      candidates.find((r) => isWorkdayJobsDataRequest(r, apiPath)) ||
+      candidates.find((r) => isWorkdayJobsAnyRequest(r, apiPath));
+
+    if (!firstReq) {
+      throw new Error(`No Workday jobs request observed on ${humanBase} (path=${apiPath}).`);
+    }
+
     const captured = await captureWorkdayRequest(firstReq);
 
     // Force our desired page size BEFORE the first replay
@@ -70,7 +88,7 @@ export async function scrapeWorkday({
     while (true) {
       setOffsetAndLimit(captured, offset, pageSize);
 
-      const data = await replay(api, captured, apiUrl);
+      const data = await replay(api, captured, captured.url || apiUrl);
       const pageItems = extractPostings(data);
 
       if (total === null) total = extractTotal(data);
@@ -228,32 +246,67 @@ async function enrichDescriptionsWithDetails({
   return jobs;
 }
 
+function isWorkdayJobsAnyRequest(req, apiPath) {
+  try {
+    const u = new URL(req.url());
+    if (u.pathname !== apiPath) return false;
+    const m = (req.method() || "").toUpperCase();
+    // Exclude CORS preflight and other non-data methods.
+    return m === "POST" || m === "GET";
+  } catch {
+    return false;
+  }
+}
+
+function isWorkdayJobsDataRequest(req, apiPath) {
+  try {
+    const u = new URL(req.url());
+    if (u.pathname !== apiPath) return false;
+    const m = (req.method() || "").toUpperCase();
+    if (m === "POST") {
+      const body = req.postData();
+      return Boolean(body && body.trim());
+    }
+    // Some tenants do GET with query params; treat as data only if it looks paginated.
+    if (m === "GET") {
+      return u.searchParams.has("offset") || u.searchParams.has("limit") || u.searchParams.has("page");
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 async function captureWorkdayRequest(req) {
+  const url = req.url();
   const method = req.method();
   const headers = sanitizeHeaders(req.headers());
   const postData = req.postData();
 
-  if (postData) {
+  if (postData && postData.trim()) {
     try {
       const json = JSON.parse(postData);
-      return { method, headers, kind: "json", json };
+      return { url, method, headers, kind: "json", json };
     } catch {
       try {
         const params = new URLSearchParams(postData);
         const form = {};
         for (const [k, v] of params.entries()) form[k] = v;
-        return { method, headers, kind: "form", form };
+        return { url, method, headers, kind: "form", form };
       } catch {
-        return { method, headers, kind: "raw", raw: postData };
+        return { url, method, headers, kind: "raw", raw: postData };
       }
     }
   }
 
-  return { method, headers, kind: "none" };
+  return { url, method, headers, kind: "none" };
 }
 
 async function replay(api, captured, url) {
-  const headers = { ...(captured.headers || {}) };
+  const headers = {
+    accept: "application/json,text/plain,*/*",
+    ...(captured.headers || {})
+  };
   delete headers["content-length"];
   delete headers["host"];
   delete headers["accept-encoding"];
@@ -303,5 +356,19 @@ function setOffsetAndLimit(captured, offset, limit) {
     captured.form.offset = String(offset);
     captured.form.limit = String(limit);
     if ("count" in captured.form) captured.form.count = String(limit);
+    return;
+  }
+
+  // Some tenants use GET with query params; if so, update the URL.
+  if (captured.method === "GET" && captured.url) {
+    try {
+      const u = new URL(captured.url);
+      u.searchParams.set("offset", String(offset));
+      u.searchParams.set("limit", String(limit));
+      if (u.searchParams.has("count")) u.searchParams.set("count", String(limit));
+      captured.url = u.toString();
+    } catch {
+      // ignore
+    }
   }
 }
