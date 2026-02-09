@@ -3,6 +3,13 @@ import { cleanText, absoluteUrl, stripHtml } from "../lib/normalize.mjs";
 
 const DEBUG = process.env.DEBUG_WORKDAY === "1";
 
+/**
+ * Workday scraper that avoids HTTP 400 by performing the API calls from inside the
+ * browser page context (page.evaluate(fetch...)), instead of using context.request.
+ *
+ * Many Workday tenants accept the browser's own XHR/fetch but reject "APIRequestContext"
+ * replays with HTTP 400 due to subtle cookie/CSRF/session/header requirements.
+ */
 export async function scrapeWorkday({
   company,
   host,
@@ -34,43 +41,62 @@ export async function scrapeWorkday({
   const page = await context.newPage();
 
   try {
-    // 1) Load the human page (helps get baseline cookies / any redirects right)
-    await page.goto(humanBase, { waitUntil: "domcontentloaded", timeout: 60000 });
-    await page.waitForLoadState("networkidle", { timeout: 60000 }).catch(() => {});
-
-    const api = context.request;
-
-    // 2) Bootstrap session + capture CSRF token if the tenant uses it.
-    // Many tenants require X-Calypso-CSRF-Token + cookies, otherwise POST /jobs returns HTTP 400.
-    const bootstrap = await bootstrapSession({ api, apiUrl, host, humanBase });
+    // 1) Capture the real in-browser Workday /jobs request + response
+    const capture = await captureInitialJobsCall({ page, humanBase, apiPath });
 
     if (DEBUG) {
-      console.log(
-        `[${company.id}] bootstrap: status=${bootstrap.status} csrf=${bootstrap.csrfToken ? "yes" : "no"}`
-      );
+      console.log(`[${company.id}] captured jobs call: method=${capture.method} url=${capture.url}`);
+      console.log(`[${company.id}] captured header keys: ${Object.keys(capture.headers).sort().join(", ")}`);
+      if (capture.kind === "json") console.log(`[${company.id}] captured body keys: ${Object.keys(capture.body || {}).join(", ")}`);
     }
 
-    // 3) Page through results via POST with canonical payload.
+    // 2) Use the captured request template to paginate IN-PAGE via fetch()
+    const extractPostings = (data) => {
+      if (Array.isArray(data?.jobPostings)) return data.jobPostings;
+      if (Array.isArray(data?.items)) return data.items;
+      if (Array.isArray(data?.searchResults)) return data.searchResults;
+      return [];
+    };
+
+    const extractTotal = (data) => {
+      if (typeof data?.total === "number") return data.total;
+      if (typeof data?.totalResults === "number") return data.totalResults;
+      if (typeof data?.count === "number") return data.count;
+      return null;
+    };
+
     const postings = [];
+    let total = null;
     let offset = 0;
 
+    // First page data comes from the captured successful response
+    {
+      const data = capture.data;
+      const pageItems = extractPostings(data);
+      total = extractTotal(data);
+
+      postings.push(...pageItems);
+      offset += pageItems.length;
+    }
+
     while (true) {
-      const data = await fetchJobsPage({
-        api,
-        apiUrl,
-        host,
-        humanBase,
-        csrfToken: bootstrap.csrfToken,
-        limit: pageSize,
-        offset
+      if (postings.length >= maxTotal) break;
+      if (typeof total === "number" && offset >= total) break;
+
+      const data = await fetchJobsPageInPage({
+        page,
+        requestTemplate: capture,
+        apiUrlFallback: apiUrl,
+        offset,
+        limit: pageSize
       });
 
       const pageItems = extractPostings(data);
-      const total = extractTotal(data);
+      if (total === null) total = extractTotal(data);
 
       if (DEBUG) {
         console.log(
-          `[${company.id}] page: offset=${offset} got=${pageItems.length} total=${typeof total === "number" ? total : "?"}`
+          `[${company.id}] page offset=${offset} got=${pageItems.length} total=${typeof total === "number" ? total : "?"}`
         );
       }
 
@@ -79,24 +105,22 @@ export async function scrapeWorkday({
       postings.push(...pageItems);
       offset += pageItems.length;
 
-      if (postings.length >= maxTotal) break;
-      if (typeof total === "number" && offset >= total) break;
       if (pageItems.length < pageSize) break;
     }
 
-    const jobs = await enrichDescriptionsWithDetails({
-      api,
-      csrfToken: bootstrap.csrfToken,
-      host,
-      humanBase,
+    // 3) Fetch job details (descriptions) also using in-page fetch to avoid 400s
+    const jobs = await enrichDescriptionsWithDetailsInPage({
+      page,
+      requestTemplate: capture,
       cxsBase,
       postings,
       company,
+      humanBase,
       scrapedAt,
       detailConcurrency
     });
 
-    if (DEBUG) console.log(`[${company.id}] workday done: jobs=${jobs.length}`);
+    if (DEBUG) console.log(`[${company.id}] workday jobs=${jobs.length}`);
     return jobs;
   } finally {
     await page.close().catch(() => {});
@@ -105,94 +129,120 @@ export async function scrapeWorkday({
   }
 }
 
-/**
- * GET bootstrap to ensure cookies are set in this browser context and to read the CSRF token
- * header if the tenant enforces x-calypso-csrf-token.
- */
-async function bootstrapSession({ api, apiUrl, host, humanBase }) {
-  const headers = {
-    accept: "application/json,text/plain,*/*",
-    "accept-language": "en-US,en;q=0.9",
-    origin: `https://${host}`,
-    referer: humanBase,
-    // content-type not necessary for GET
+async function captureInitialJobsCall({ page, humanBase, apiPath }) {
+  // We want the *successful* response that the page itself uses.
+  // Capture request+headers+body from the matching response.request().
+  const isJobs = (urlStr) => {
+    try {
+      const u = new URL(urlStr);
+      return u.pathname === apiPath;
+    } catch {
+      return false;
+    }
   };
 
+  await page.goto(humanBase, { waitUntil: "domcontentloaded", timeout: 60000 });
+
+  const resp = await page.waitForResponse(
+    (r) => isJobs(r.url()) && r.status() >= 200 && r.status() < 300,
+    { timeout: 60000 }
+  );
+
+  const req = resp.request();
+  const method = (req.method() || "").toUpperCase();
+  const url = req.url();
+
+  const headers = filterHeadersForBrowserFetch(req.headers());
+  const postData = req.postData();
+
+  // Parse body if JSON
+  let kind = "none";
+  let body = null;
+
+  if (method === "POST" && postData && postData.trim()) {
+    try {
+      body = JSON.parse(postData);
+      kind = "json";
+    } catch {
+      // Workday is almost always JSON here, but keep a fallback.
+      kind = "raw";
+      body = postData;
+    }
+  }
+
+  const text = await resp.text();
+  let data;
   try {
-    const res = await api.get(apiUrl, { headers });
-
-    const status = res.status();
-    // Playwright normalizes headers to lowercase keys
-    const h = res.headers();
-    const csrfToken =
-      h["x-calypso-csrf-token"] ||
-      h["x-calypso-csrf"] ||
-      null;
-
-    // Even if not ok, cookies might still be set (depends on tenant),
-    // but in most cases this GET should be 200/204.
-    return { status, csrfToken };
-  } catch (e) {
-    if (DEBUG) console.warn(`bootstrapSession failed: ${e?.message || e}`);
-    return { status: -1, csrfToken: null };
-  }
-}
-
-async function fetchJobsPage({ api, apiUrl, host, humanBase, csrfToken, limit, offset }) {
-  const headers = {
-    accept: "application/json,text/plain,*/*",
-    "accept-language": "en-US,en;q=0.9",
-    "content-type": "application/json;charset=UTF-8",
-    origin: `https://${host}`,
-    referer: humanBase
-  };
-
-  if (csrfToken) headers["x-calypso-csrf-token"] = csrfToken;
-
-  const payload = {
-    appliedFacets: {},
-    limit,
-    offset,
-    searchText: ""
-  };
-
-  const res = await api.post(apiUrl, { headers, data: payload });
-  const txt = await res.text();
-
-  if (!res.ok()) {
-    // include body snippet, it often contains the Workday JSON error blob
-    throw new Error(`HTTP ${res.status()} for ${apiUrl}\n${txt.slice(0, 1200)}`);
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Workday returned non-JSON for initial /jobs response: ${text.slice(0, 400)}`);
   }
 
-  return JSON.parse(txt);
+  return { method, url, headers, kind, body, data };
 }
 
-function extractPostings(data) {
-  if (Array.isArray(data?.jobPostings)) return data.jobPostings;
-  if (Array.isArray(data?.items)) return data.items;
-  if (Array.isArray(data?.searchResults)) return data.searchResults;
-  return [];
+/**
+ * Update offset/limit in the request body.
+ * Different tenants use slightly different shapes; cover the common ones.
+ */
+function setOffsetAndLimitInBody(body, offset, limit) {
+  if (!body || typeof body !== "object") return;
+
+  // Most common
+  body.offset = offset;
+  body.limit = limit;
+
+  // Some variants
+  if (typeof body.count === "number") body.count = limit;
+  if (typeof body.pageSize === "number") body.pageSize = limit;
+  if (typeof body.start === "number") body.start = offset;
 }
 
-function extractTotal(data) {
-  if (typeof data?.total === "number") return data.total;
-  if (typeof data?.totalResults === "number") return data.totalResults;
-  if (typeof data?.count === "number") return data.count;
-  return null;
+async function fetchJobsPageInPage({ page, requestTemplate, apiUrlFallback, offset, limit }) {
+  const url = requestTemplate.url || apiUrlFallback;
+
+  if (requestTemplate.method !== "POST") {
+    // Extremely rare; still support by appending query params.
+    const u = new URL(url);
+    u.searchParams.set("offset", String(offset));
+    u.searchParams.set("limit", String(limit));
+    const res = await pageFetchJson(page, u.toString(), {
+      method: "GET",
+      headers: requestTemplate.headers
+    });
+    return res;
+  }
+
+  if (requestTemplate.kind !== "json" || !requestTemplate.body || typeof requestTemplate.body !== "object") {
+    throw new Error(`Captured Workday /jobs POST did not have a JSON body. Cannot paginate safely.`);
+  }
+
+  const body = deepClone(requestTemplate.body);
+  setOffsetAndLimitInBody(body, offset, limit);
+
+  const res = await pageFetchJson(page, url, {
+    method: "POST",
+    headers: {
+      ...requestTemplate.headers,
+      "content-type": "application/json;charset=UTF-8"
+    },
+    body: JSON.stringify(body)
+  });
+
+  return res;
 }
 
-async function enrichDescriptionsWithDetails({
-  api,
-  csrfToken,
-  host,
-  humanBase,
+async function enrichDescriptionsWithDetailsInPage({
+  page,
+  requestTemplate,
   cxsBase,
   postings,
   company,
+  humanBase,
   scrapedAt,
   detailConcurrency
 }) {
-  // simple concurrency limiter
+  // Concurrency limiter
   const queue = [];
   let active = 0;
 
@@ -216,13 +266,8 @@ async function enrichDescriptionsWithDetails({
     }
   };
 
-  const headersBase = {
-    accept: "application/json,text/plain,*/*",
-    "accept-language": "en-US,en;q=0.9",
-    origin: `https://${host}`,
-    referer: humanBase
-  };
-  if (csrfToken) headersBase["x-calypso-csrf-token"] = csrfToken;
+  // Use the same header set used by the jobs request (safe subset)
+  const headers = requestTemplate.headers || {};
 
   const jobs = await Promise.all(
     postings.map((p) =>
@@ -252,19 +297,21 @@ async function enrichDescriptionsWithDetails({
           cleanText(p?.description) ||
           null;
 
-        // Detail fetch
         if (externalPath && externalPath.startsWith("/job/")) {
           const detailUrl = `${cxsBase}${externalPath}`;
+
           try {
-            const res = await api.get(detailUrl, { headers: headersBase });
-            if (res.ok()) {
-              const data = await res.json();
-              const htmlDesc =
-                data?.jobPostingInfo?.jobDescription ||
-                data?.jobPostingInfo?.jobDescriptionText ||
-                null;
-              if (htmlDesc) descriptionText = stripHtml(htmlDesc);
-            }
+            const data = await pageFetchJson(page, detailUrl, {
+              method: "GET",
+              headers
+            });
+
+            const htmlDesc =
+              data?.jobPostingInfo?.jobDescription ||
+              data?.jobPostingInfo?.jobDescriptionText ||
+              null;
+
+            if (htmlDesc) descriptionText = stripHtml(htmlDesc);
           } catch {
             // ignore detail failures
           }
@@ -282,7 +329,7 @@ async function enrichDescriptionsWithDetails({
           url,
           applyUrl: url,
           description: { text: descriptionText, html: null },
-          source: { kind: "workday_cxs_session_post", raw: { externalPath } },
+          source: { kind: "workday_inpage_fetch", raw: { externalPath } },
           postedAt,
           scrapedAt
         };
@@ -291,4 +338,71 @@ async function enrichDescriptionsWithDetails({
   );
 
   return jobs;
+}
+
+/**
+ * Perform fetch in the page context so cookies/CSRF/session match what Workday expects.
+ * Returns parsed JSON or throws with a useful error body snippet.
+ */
+async function pageFetchJson(page, url, { method, headers, body }) {
+  const result = await page.evaluate(async ({ url, method, headers, body }) => {
+    const res = await fetch(url, {
+      method,
+      headers,
+      body,
+      credentials: "same-origin"
+    });
+
+    const text = await res.text();
+    return {
+      ok: res.ok,
+      status: res.status,
+      text
+    };
+  }, { url, method, headers, body });
+
+  if (!result.ok) {
+    throw new Error(`HTTP ${result.status} for ${url}\n${result.text.slice(0, 1200)}`);
+  }
+
+  try {
+    return JSON.parse(result.text);
+  } catch {
+    throw new Error(`Non-JSON response for ${url}\n${result.text.slice(0, 1200)}`);
+  }
+}
+
+/**
+ * Only keep headers that are safe/meaningful to set in browser fetch.
+ * (Many request headers are forbidden to set programmatically.)
+ */
+function filterHeadersForBrowserFetch(h) {
+  const out = {};
+  const allow = new Set([
+    "accept",
+    "accept-language",
+    "content-type",
+    "x-calypso-csrf-token",
+    "x-workday-client",
+    "x-workday-application",
+    "x-workday-user-agent",
+    "x-wday-tenant",
+    "x-wday-device",
+    "x-wday-timezone",
+    "x-wday-timezone-offset"
+  ]);
+
+  for (const [k, v] of Object.entries(h || {})) {
+    const key = String(k).toLowerCase();
+    if (allow.has(key)) out[key] = v;
+  }
+
+  // Ensure we ask for JSON
+  if (!out["accept"]) out["accept"] = "application/json,text/plain,*/*";
+
+  return out;
+}
+
+function deepClone(x) {
+  return x ? JSON.parse(JSON.stringify(x)) : x;
 }
