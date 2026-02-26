@@ -24,8 +24,8 @@
         "externalPath": "/job/Remote-Work-Germany/XMLNAME--Senior--Clinical-Statistical-Programmer---SAS-_JR100596-1"
       }
     },
-    "postedAt": "Posted 27 Days Ago",
-    "scrapedAt": "2026-02-25T06:57:04.006Z",
+    "postedAt": "Posted 28 Days Ago",
+    "scrapedAt": "2026-02-26T06:53:59.419Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -61,8 +61,8 @@
         "externalPath": "/job/Munich/XMLNAME--Senior--Manager-Clinical-Sciences_JR100609"
       }
     },
-    "postedAt": "Posted 12 Days Ago",
-    "scrapedAt": "2026-02-25T06:57:04.006Z",
+    "postedAt": "Posted 13 Days Ago",
+    "scrapedAt": "2026-02-26T06:53:59.419Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -98,8 +98,8 @@
         "externalPath": "/job/Munich/XMLNAME--Senior--Specialist-Cell-Therapy-Supply-Chain-_JR100632-1"
       }
     },
-    "postedAt": "Posted 6 Days Ago",
-    "scrapedAt": "2026-02-25T06:57:04.006Z",
+    "postedAt": "Posted 7 Days Ago",
+    "scrapedAt": "2026-02-26T06:53:59.419Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -135,8 +135,8 @@
         "externalPath": "/job/Remote-Work-Germany/Medical-Monitor-_JR100625"
       }
     },
-    "postedAt": "Posted 14 Days Ago",
-    "scrapedAt": "2026-02-25T06:57:04.006Z",
+    "postedAt": "Posted 15 Days Ago",
+    "scrapedAt": "2026-02-26T06:53:59.419Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -146,5 +146,42 @@
     },
     "locationConfidence": "low",
     "workplaceConfidence": "medium"
+  },
+  {
+    "id": "immatics:L2pvYi9Ib3VzdG9uL1Nlbmlvci1WaWNlLVByZXNpZGVudC0tRmluYW5jZV9KUjEwMDYzOC0y",
+    "company": {
+      "id": "immatics",
+      "name": "Immatics",
+      "careersUrl": "https://immatics.wd3.myworkdayjobs.com/Immatics_External"
+    },
+    "title": "Senior Vice President, Finance",
+    "location": "Houston",
+    "workplace": "unknown",
+    "employmentType": null,
+    "department": null,
+    "team": null,
+    "url": "https://immatics.wd3.myworkdayjobs.com/job/Houston/Senior-Vice-President--Finance_JR100638-2",
+    "applyUrl": "https://immatics.wd3.myworkdayjobs.com/job/Houston/Senior-Vice-President--Finance_JR100638-2",
+    "description": {
+      "text": "Sr Vice President , Finance ​ ​ Permanent employee ​ ​ Full-time ​ We are currently seeking a Vice President Finance and Controlling to head our Controlling department . You will work in an interdisciplinary environment with colleagues from Germany and Houston (TX). Your analytical reasoning and action-oriented style as well as your organization and communication skills will contribute to the team’s success. The position is preferably located in Munich (Germany) and will directly report to our CFO. YOUR MISSION Your main responsibilities will include but are not limited to the following tasks: Lead the annual budgeting process and the quarterly forecasts, including scenario planning . Measure, analyze, and forecast performance in conjunction with annual budget, quarterly forecasts, and historical data from the prior year. Lead the business planning process and valuation of the company, including financial modeling . Establish commercial modeling and prepar e the company for commercial operations. Lead the r isk management processes and reviews . Prepare material s for the Board and the Executive Committee . Proactively drive improvements and growth by modernizing and digitalizing finance processes . Lead the Controlling team in Germany and the US . YOUR PROFILE An MBA or master’s degree in Finance , Accounting, Business Administration , or related discipline . 1 5 &#43; years of practical experience in a similar role , preferably in an international environment . A background in the Life Science industry is essential. Experience in f inancial and commercial modeling . A bility to effectively communicate with a wide range of stakeholders like senior management, board members and investors . Experience working in a fast-paced environment and skilled in managing multiple high-priority deliverables. Strong problem-solving skills with hands -on attitude and creative approach. Analytical and structured work style. Proven ability to lead and develop high-performing teams. Strategic thinker , capable of driving financial initiatives and process improvements. Strong proficiency in English is a must , and German language skills would be an additional advantage. Demonstrated ability to hire, coach and lead top talent Demonstrated ability to lead teams in multiple locations",
+      "html": null
+    },
+    "source": {
+      "kind": "workday_inpage_fetch",
+      "raw": {
+        "externalPath": "/job/Houston/Senior-Vice-President--Finance_JR100638-2"
+      }
+    },
+    "postedAt": "Posted Today",
+    "scrapedAt": "2026-02-26T06:53:59.419Z",
+    "language": "en",
+    "locationParsed": {
+      "raw": "Houston",
+      "country": null,
+      "region": null,
+      "city": "Houston"
+    },
+    "locationConfidence": "low",
+    "workplaceConfidence": "low"
   }
 ]
