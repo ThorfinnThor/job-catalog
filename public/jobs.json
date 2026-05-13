@@ -24,8 +24,8 @@
         "externalPath": "/job/Tuebingen-Germany/XMLNAME--Associate--Manager-Sample-Management-_JR100663"
       }
     },
-    "postedAt": "Posted 28 Days Ago",
-    "scrapedAt": "2026-05-12T08:32:19.191Z",
+    "postedAt": "Posted 29 Days Ago",
+    "scrapedAt": "2026-05-13T08:38:30.799Z",
     "language": "en",
     "locationParsed": {
       "raw": "Tuebingen (Germany)",
@@ -61,8 +61,8 @@
         "externalPath": "/job/Munich/Associate-Director-Regulatory-Affairs---Clinical-Lead-_JR100644"
       }
     },
-    "postedAt": "Posted 29 Days Ago",
-    "scrapedAt": "2026-05-12T08:32:19.191Z",
+    "postedAt": "Posted 30 Days Ago",
+    "scrapedAt": "2026-05-13T08:38:30.799Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -99,7 +99,7 @@
       }
     },
     "postedAt": "Posted 30+ Days Ago",
-    "scrapedAt": "2026-05-12T08:32:19.191Z",
+    "scrapedAt": "2026-05-13T08:38:30.799Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -135,8 +135,8 @@
         "externalPath": "/job/Munich/Manager-Regulatory-Affairs---Submission-Lead-_JR100662"
       }
     },
-    "postedAt": "Posted 29 Days Ago",
-    "scrapedAt": "2026-05-12T08:32:19.191Z",
+    "postedAt": "Posted 30 Days Ago",
+    "scrapedAt": "2026-05-13T08:38:30.799Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -172,8 +172,8 @@
         "externalPath": "/job/Munich/Senior-Manager-Regulatory-Affairs-_JR100669"
       }
     },
-    "postedAt": "Posted 18 Days Ago",
-    "scrapedAt": "2026-05-12T08:32:19.191Z",
+    "postedAt": "Posted 19 Days Ago",
+    "scrapedAt": "2026-05-13T08:38:30.799Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -183,42 +183,5 @@
     },
     "locationConfidence": "low",
     "workplaceConfidence": "medium"
-  },
-  {
-    "id": "immatics:L2pvYi9UdWViaW5nZW4tR2VybWFueS9Xb3JraW5nLVN0dWRlbnQtLS1TYW1wbGUtTWFuYWdlbWVudC1fSlIxMDA2NjY",
-    "company": {
-      "id": "immatics",
-      "name": "Immatics",
-      "careersUrl": "https://immatics.wd3.myworkdayjobs.com/Immatics_External"
-    },
-    "title": "Working Student - Sample Management*",
-    "location": "Tuebingen (Germany)",
-    "workplace": "unknown",
-    "employmentType": null,
-    "department": null,
-    "team": null,
-    "url": "https://immatics.wd3.myworkdayjobs.com/job/Tuebingen-Germany/Working-Student---Sample-Management-_JR100666",
-    "applyUrl": "https://immatics.wd3.myworkdayjobs.com/job/Tuebingen-Germany/Working-Student---Sample-Management-_JR100666",
-    "description": {
-      "text": "OVERVIEW We are currently seeking a Working Student - Sample Management* to support our Translational Research and Biomarkers team in Tuebingen (Germany). In this role, you will support clinical trial sample management activities with a focus on PBMC (Peripheral Blood Mononuclear Cell) workflows, ensuring accurate tracking, documentation, and coordination of clinical samples. You will contribute to maintaining high data quality and operational efficiency in a dynamic, GxP-regulated environment. YOUR MISSION Your main responsibilities will include but are not limited to the following tasks: Maintenance and update of sample tracking systems, including digital data entry and data consistency checks to ensure full traceability of clinical trial samples Coordination and tracking of sample-related materials (e.g., aliquot labels, PBMC isolation material) Preparation of shipment-related documentation and support of sample receipt processes Support process improvements and digitalization initiatives (e.g., PBMC workflows) Assistance in data reconciliation between different systems and sources YOUR PROFILE You are currently enrolled in a Bachelor’s or Master’s program in life sciences, biotechnology, medicine, or a related field. Initial experience in a laboratory, clinical, or regulated environment is an advantage. You have an interest in clinical research and sample management processes You are comfortable working with data and digital tools (e.g., Excel) You are reliable and well-organized, with a strong attention to detail and the ability to perform routine tasks with high accuracy You are able to work independently after onboarding and manage defined responsibilities You have good communication skills in English (working proficiency) and preferably German WHY US? We are the global leader in precision targeting of PRAME. Driven by our mission to make an impact on the lives of patients with cancer, we are a committed and inspired team and cherish the collegial, highly motivated, and family-friendly atmosphere within Immatics. Working hours can be arranged flexibly from Monday through Friday, making this position ideal for balancing with your study program. NOTICE *We value diversity and inclusion. Immatics N.V. and all Immatics subsidiaries are equal opportunity employers that evaluate qualified applicants without regard to race, color, national origin, religion, sex, age, marital status, disability, veteran status, sexual orientation, gender identity, or other characteristics protected by law. ABOUT IMMATICS Immatics is committed to making a meaningful impact on the lives of patients with cancer. We are the global leader in precision targeting of PRAME, a target expressed in more than 50 cancers. Our cutting-edge science and robust clinical pipeline form the broadest PRAME franchise with the most PRAME indications and modalities, spanning TCR T-cell therapies and TCR bispecifics. Immatics intends to use its website www.immatics.com as a means of disclosing material non-public information. For regular updates, you can also follow us on LinkedIn and Instagram .",
-      "html": null
-    },
-    "source": {
-      "kind": "workday_inpage_fetch",
-      "raw": {
-        "externalPath": "/job/Tuebingen-Germany/Working-Student---Sample-Management-_JR100666"
-      }
-    },
-    "postedAt": "Posted 22 Days Ago",
-    "scrapedAt": "2026-05-12T08:32:19.191Z",
-    "language": "en",
-    "locationParsed": {
-      "raw": "Tuebingen (Germany)",
-      "country": "Germany",
-      "region": null,
-      "city": "Tuebingen"
-    },
-    "locationConfidence": "medium",
-    "workplaceConfidence": "low"
   }
 ]
