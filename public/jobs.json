@@ -25,7 +25,7 @@
       }
     },
     "postedAt": "Posted 30+ Days Ago",
-    "scrapedAt": "2026-05-14T08:31:48.620Z",
+    "scrapedAt": "2026-05-15T08:53:18.464Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -62,7 +62,7 @@
       }
     },
     "postedAt": "Posted 30+ Days Ago",
-    "scrapedAt": "2026-05-14T08:31:48.620Z",
+    "scrapedAt": "2026-05-15T08:53:18.464Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -99,7 +99,7 @@
       }
     },
     "postedAt": "Posted 30+ Days Ago",
-    "scrapedAt": "2026-05-14T08:31:48.620Z",
+    "scrapedAt": "2026-05-15T08:53:18.464Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -135,8 +135,8 @@
         "externalPath": "/job/Munich/Senior-Manager-Regulatory-Affairs-_JR100669"
       }
     },
-    "postedAt": "Posted 20 Days Ago",
-    "scrapedAt": "2026-05-14T08:31:48.620Z",
+    "postedAt": "Posted 21 Days Ago",
+    "scrapedAt": "2026-05-15T08:53:18.464Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -146,5 +146,42 @@
     },
     "locationConfidence": "low",
     "workplaceConfidence": "medium"
+  },
+  {
+    "id": "immatics:L2pvYi9UdWViaW5nZW4tR2VybWFueS9Xb3JraW5nLVN0dWRlbnQtSVQtU2VydmljZS1fSlIxMDA2ODE",
+    "company": {
+      "id": "immatics",
+      "name": "Immatics",
+      "careersUrl": "https://immatics.wd3.myworkdayjobs.com/Immatics_External"
+    },
+    "title": "Working Student IT Service*",
+    "location": "Tuebingen (Germany)",
+    "workplace": "unknown",
+    "employmentType": null,
+    "department": null,
+    "team": null,
+    "url": "https://immatics.wd3.myworkdayjobs.com/job/Tuebingen-Germany/Working-Student-IT-Service-_JR100681",
+    "applyUrl": "https://immatics.wd3.myworkdayjobs.com/job/Tuebingen-Germany/Working-Student-IT-Service-_JR100681",
+    "description": {
+      "text": "OVERVIEW We are currently seeking a Working Student IT Service* to strengthen our IT department for 10 - 20 hours per week. You will work in Tübingen (Germany) in an interdisciplinary environment with colleagues from Germany and the US and will contribute to our mission of delivering novel PRAME immunotherapies to patients with cancer. YOUR MISSION Your main responsibilities will include but are not limited to the following tasks: Hardware and End User Support: Setting up laptops, workstations, smartphones, and tablets for end-users and labs. Swapping out broken equipment, getting meeting rooms sorted, and ordering hardware by sending product links and quantities to Facilities for purchase. Employee Lifecycle Support: Processing offboarding tasks when employees leave – collecting equipment, disabling accounts, and closing out access. Handling absence-related changes or adjusting access when someone goes on extended leave, and getting users back up and running when they return from absence. Device Lifecycle: Preparing new hardware before it goes to a user. Collecting and wiping returned devices for redeployment. Keeping a clear and up-to-date picture of what equipment we have, where it sits, and who is using it. Asset Tracking: Updating records whenever a device is deployed, returned, or reassigned. Keeping our systems in sync so our inventory is accurate, and labeling physical assets to match what is in the system. YOUR PROFILE You are currently enrolled in a Bachelor’s or Master’s degree in Computer Science, Information Technology, Engineering or a related field. Ideally, you have gained initial hands-on experience in IT support, hardware setup, or system administration, but this is not mandatory. Knowledge of Windows-based environments and common IT tools is an advantage. Your practical skills and your good communication skills in German and English enable you to successfully contribute to our IT team and support end-users effectively. You are interested in IT infrastructure and technology and you are comfortable creating careful, accurate notes and documentation.. Your motivation is driven by a genuine interest in IT and helping people get their technology to work. You approach tasks in a structured, reliable and foresighted manner, combined with an elevated level of individual responsibility, enthusiasm and strong social skills. WHY US? We are the global leader in precision targeting of PRAME. Driven by our mission to make an impact on the lives of patients with cancer, we are a committed and inspired team and cherish the collegial, highly motivated, and family-friendly atmosphere within Immatics. Working hours can be arranged flexibly from Monday through Friday, making this position ideal for balancing with your study program. NOTICE *We value diversity and inclusion. Immatics N.V. and all Immatics subsidiaries are equal opportunity employers that evaluate qualified applicants without regard to race, color, national origin, religion, sex, age, marital status, disability, veteran status, sexual orientation, gender identity, or other characteristics protected by law. ABOUT IMMATICS Immatics is committed to making a meaningful impact on the lives of patients with cancer. We are the global leader in precision targeting of PRAME, a target expressed in more than 50 cancers. Our cutting-edge science and robust clinical pipeline form the broadest PRAME franchise with the most PRAME indications and modalities, spanning TCR T-cell therapies and TCR bispecifics. Immatics intends to use its website www.immatics.com as a means of disclosing material non-public information. For regular updates, you can also follow us on LinkedIn and Instagram .",
+      "html": null
+    },
+    "source": {
+      "kind": "workday_inpage_fetch",
+      "raw": {
+        "externalPath": "/job/Tuebingen-Germany/Working-Student-IT-Service-_JR100681"
+      }
+    },
+    "postedAt": "Posted Today",
+    "scrapedAt": "2026-05-15T08:53:18.464Z",
+    "language": "en",
+    "locationParsed": {
+      "raw": "Tuebingen (Germany)",
+      "country": "Germany",
+      "region": null,
+      "city": "Tuebingen"
+    },
+    "locationConfidence": "medium",
+    "workplaceConfidence": "low"
   }
 ]
