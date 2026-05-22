@@ -25,44 +25,7 @@
       }
     },
     "postedAt": "Posted 30+ Days Ago",
-    "scrapedAt": "2026-05-21T09:28:37.657Z",
-    "language": "en",
-    "locationParsed": {
-      "raw": "3 Locations",
-      "country": null,
-      "region": null,
-      "city": "3 Locations"
-    },
-    "locationConfidence": "low",
-    "workplaceConfidence": "medium"
-  },
-  {
-    "id": "immatics:L2pvYi9NdW5pY2gvTWFuYWdlci1SZWd1bGF0b3J5LUFmZmFpcnMtLS1TdWJtaXNzaW9uLUxlYWQtX0pSMTAwNjYy",
-    "company": {
-      "id": "immatics",
-      "name": "Immatics",
-      "careersUrl": "https://immatics.wd3.myworkdayjobs.com/Immatics_External"
-    },
-    "title": "Manager Regulatory Affairs - Submission Lead*",
-    "location": "3 Locations",
-    "workplace": "remote",
-    "employmentType": null,
-    "department": null,
-    "team": null,
-    "url": "https://immatics.wd3.myworkdayjobs.com/job/Munich/Manager-Regulatory-Affairs---Submission-Lead-_JR100662",
-    "applyUrl": "https://immatics.wd3.myworkdayjobs.com/job/Munich/Manager-Regulatory-Affairs---Submission-Lead-_JR100662",
-    "description": {
-      "text": "OVERVIEW We are currently seeking a Manager Regulatory Affairs – Submission Lead * to strengthen our Regulatory Affairs department. You will work in Tübingen, Munich or remote (Germany) in an interdisciplinary environment with colleagues from Germany and the US and will contribute to our mission of delivering novel PRAME immunotherapies to patients with cancer. This position is a fixed-term role of 18 months as it covers a maternity leave. YOUR MISSION Your main responsibilities will include but are not limited to the following tasks: Serve as the EU Submission Lead for assigned clinical trials and act as primary contact for submission planning and execution. Lead the preparation and submission of initial applications and amendments via CTIS and oversee end‑of‑trial submissions. Coordinate all regulatory submission activities in collaboration with the Regulatory Affairs Project Lead, including coordination of external vendors and partners. Ensure compliance with regulatory requirements, provide regulatory oversight for site‑related documentation, and ensure timely delivery of complete and accurate Part II application packages. Drive submission readiness, including compilation, document status tracking, timeline management, and formal-validity checks for complete application packages. Oversee regulatory filing readiness and handoff to eTMF filing processes. Ensure clear and timely regulatory communication across cross‑functional teams. Coordinate the preparation and submission of timely Request for Information responses in collaboration with the Regulatory Affairs Project Lead. Contribute to regulatory intelligence and maintain current knowledge of EU and global regulatory requirements. YOUR PROFILE You hold a Master’s degree in Life Sciences and have gained 2&#43; years of experience in the submission of clinical trials in the EU via CTIS. Knowledge of submissions in non‑EU countries is an advantage. Your experience enables you to successfully contribute to cross-functional work in multidisciplinary teams. You are interested in contributing to innovative clinical research, and you take working in teams, paying attention to detail, and consistently meeting timelines for granted. We expect a high degree of independent working, analytical reasoning and excellent communication skills in English (at least C1-Level); German is an advantage. You embrace rapidly changing requirements with an open mind, think outside the box and show a high degree of flexibility in an environment which is marked by a constant striving for excellence. Approaching tasks in a structured, reliable, and forward‑thinking manner, you demonstrate a high level of individual responsibility, enthusiasm, and proactiveness. WHY US? We are the global leader in precision targeting of PRAME. Driven by our mission to make an impact on the lives of patients with cancer, we are a committed and inspired team and cherish the collegial, highly motivated, and family-friendly atmosphere within Immatics. Our culture allows for a high level of originality, independent thinking, and initiative. We believe in supporting our employees’ professional and social skills: We enable them to join conferences and trainings as well as to enjoy our Immatics benefits – e.g., job bike, job ticket, Health Programs, childcare benefits, relocation allowance, Company summer and winter events. NOTICE *We value diversity and inclusion. Immatics N.V. and all Immatics subsidiaries are equal opportunity employers that evaluate qualified applicants without regard to race, color, national origin, religion, sex, age, marital status, disability, veteran status, sexual orientation, gender identity, or other characteristics protected by law. ABOUT IMMATICS Immatics is committed to making a meaningful impact on the lives of patients with cancer. We are the global leader in precision targeting of PRAME, a target expressed in more than 50 cancers. Our cutting-edge science and robust clinical pipeline form the broadest PRAME franchise with the most PRAME indications and modalities, spanning TCR T-cell therapies and TCR bispecifics. Immatics intends to use its website www.immatics.com as a means of disclosing material non-public information. For regular updates, you can also follow us on LinkedIn and Instagram .",
-      "html": null
-    },
-    "source": {
-      "kind": "workday_inpage_fetch",
-      "raw": {
-        "externalPath": "/job/Munich/Manager-Regulatory-Affairs---Submission-Lead-_JR100662"
-      }
-    },
-    "postedAt": "Posted 30+ Days Ago",
-    "scrapedAt": "2026-05-21T09:28:37.657Z",
+    "scrapedAt": "2026-05-22T08:53:26.478Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -98,8 +61,8 @@
         "externalPath": "/job/Munich/Senior-Manager-Regulatory-Affairs-_JR100669"
       }
     },
-    "postedAt": "Posted 27 Days Ago",
-    "scrapedAt": "2026-05-21T09:28:37.657Z",
+    "postedAt": "Posted 28 Days Ago",
+    "scrapedAt": "2026-05-22T08:53:26.478Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -126,7 +89,7 @@
     "url": "https://immatics.wd3.myworkdayjobs.com/job/Tuebingen-Germany/Working-Student-IT-Service-_JR100681",
     "applyUrl": "https://immatics.wd3.myworkdayjobs.com/job/Tuebingen-Germany/Working-Student-IT-Service-_JR100681",
     "description": {
-      "text": "OVERVIEW We are currently seeking a Working Student IT Service* to strengthen our IT department for 10 - 20 hours per week. You will work in Tübingen (Germany) in an interdisciplinary environment with colleagues from Germany and the US and will contribute to our mission of delivering novel PRAME immunotherapies to patients with cancer. YOUR MISSION Your main responsibilities will include but are not limited to the following tasks: Hardware and End User Support: Setting up laptops, workstations, smartphones, and tablets for end-users and labs. Swapping out broken equipment, getting meeting rooms sorted, and ordering hardware by sending product links and quantities to Facilities for purchase. Employee Lifecycle Support: Processing offboarding tasks when employees leave – collecting equipment, disabling accounts, and closing out access. Handling absence-related changes or adjusting access when someone goes on extended leave, and getting users back up and running when they return from absence. Device Lifecycle: Preparing new hardware before it goes to a user. Collecting and wiping returned devices for redeployment. Keeping a clear and up-to-date picture of what equipment we have, where it sits, and who is using it. Asset Tracking: Updating records whenever a device is deployed, returned, or reassigned. Keeping our systems in sync so our inventory is accurate, and labeling physical assets to match what is in the system. YOUR PROFILE You are currently enrolled in a Bachelor’s or Master’s degree in Computer Science, Information Technology, Engineering or a related field. Ideally, you have gained initial hands-on experience in IT support, hardware setup, or system administration, but this is not mandatory. Knowledge of Windows-based environments and common IT tools is an advantage. Your practical skills and your good communication skills in German and English enable you to successfully contribute to our IT team and support end-users effectively. You are interested in IT infrastructure and technology and you are comfortable creating careful, accurate notes and documentation.. Your motivation is driven by a genuine interest in IT and helping people get their technology to work. You approach tasks in a structured, reliable and foresighted manner, combined with an elevated level of individual responsibility, enthusiasm and strong social skills. WHY US? We are the global leader in precision targeting of PRAME. Driven by our mission to make an impact on the lives of patients with cancer, we are a committed and inspired team and cherish the collegial, highly motivated, and family-friendly atmosphere within Immatics. Working hours can be arranged flexibly from Monday through Friday, making this position ideal for balancing with your study program. NOTICE *We value diversity and inclusion. Immatics N.V. and all Immatics subsidiaries are equal opportunity employers that evaluate qualified applicants without regard to race, color, national origin, religion, sex, age, marital status, disability, veteran status, sexual orientation, gender identity, or other characteristics protected by law. ABOUT IMMATICS Immatics is committed to making a meaningful impact on the lives of patients with cancer. We are the global leader in precision targeting of PRAME, a target expressed in more than 50 cancers. Our cutting-edge science and robust clinical pipeline form the broadest PRAME franchise with the most PRAME indications and modalities, spanning TCR T-cell therapies and TCR bispecifics. Immatics intends to use its website www.immatics.com as a means of disclosing material non-public information. For regular updates, you can also follow us on LinkedIn and Instagram .",
+      "text": "OVERVIEW We are currently seeking a Working Student IT Service* to strengthen our IT department for 10 - 20 hours per week. You will work in Tübingen (Germany) in an interdisciplinary environment with colleagues from Germany and the US and will contribute to our mission of delivering novel PRAME immunotherapies to patients with cancer. YOUR MISSION Your main responsibilities will include but are not limited to the following tasks: Hardware and End User Support: Setting up laptops, workstations, smartphones, and tablets for end-users and labs. Swapping out broken equipment, getting meeting rooms sorted, and ordering hardware by sending product links and quantities to Facilities for purchase. Employee Lifecycle Support: Processing offboarding tasks when employees leave – collecting equipment, disabling accounts, and closing out access. Handling absence-related changes or adjusting access when someone goes on extended leave, and getting users back up and running when they return from absence. Device Lifecycle: Preparing new hardware before it goes to a user. Collecting and wiping returned devices for redeployment. Keeping a clear and up-to-date picture of what equipment we have, where it sits, and who is using it. Asset Tracking: Updating records whenever a device is deployed, returned, or reassigned. Keeping our systems in sync so our inventory is accurate, and labeling physical assets to match what is in the system. YOUR PROFILE You are currently enrolled in a Bachelor’s or Master’s degree in Computer Science, Information Technology, Engineering or a related field for at least 2 more semesters. Ideally, you have gained initial hands-on experience in IT support, hardware setup, or system administration, but this is not mandatory. Knowledge of Windows-based environments and common IT tools is an advantage. Your practical skills and your good communication skills in German and English enable you to successfully contribute to our IT team and support end-users effectively. You are interested in IT infrastructure and technology and you are comfortable creating careful, accurate notes and documentation.. Your motivation is driven by a genuine interest in IT and helping people get their technology to work. You approach tasks in a structured, reliable and foresighted manner, combined with an elevated level of individual responsibility, enthusiasm and strong social skills. WHY US? We are the global leader in precision targeting of PRAME. Driven by our mission to make an impact on the lives of patients with cancer, we are a committed and inspired team and cherish the collegial, highly motivated, and family-friendly atmosphere within Immatics. Working hours can be arranged flexibly from Monday through Friday, making this position ideal for balancing with your study program. NOTICE *We value diversity and inclusion. Immatics N.V. and all Immatics subsidiaries are equal opportunity employers that evaluate qualified applicants without regard to race, color, national origin, religion, sex, age, marital status, disability, veteran status, sexual orientation, gender identity, or other characteristics protected by law. ABOUT IMMATICS Immatics is committed to making a meaningful impact on the lives of patients with cancer. We are the global leader in precision targeting of PRAME, a target expressed in more than 50 cancers. Our cutting-edge science and robust clinical pipeline form the broadest PRAME franchise with the most PRAME indications and modalities, spanning TCR T-cell therapies and TCR bispecifics. Immatics intends to use its website www.immatics.com as a means of disclosing material non-public information. For regular updates, you can also follow us on LinkedIn and Instagram .",
       "html": null
     },
     "source": {
@@ -135,8 +98,8 @@
         "externalPath": "/job/Tuebingen-Germany/Working-Student-IT-Service-_JR100681"
       }
     },
-    "postedAt": "Posted 6 Days Ago",
-    "scrapedAt": "2026-05-21T09:28:37.657Z",
+    "postedAt": "Posted Yesterday",
+    "scrapedAt": "2026-05-22T08:53:26.478Z",
     "language": "en",
     "locationParsed": {
       "raw": "Tuebingen (Germany)",
