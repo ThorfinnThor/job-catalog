@@ -24,8 +24,8 @@
         "externalPath": "/job/Munich/Senior-Executive-Assistant---Associate-Manager_JR100704"
       }
     },
-    "postedAt": "Posted 3 Days Ago",
-    "scrapedAt": "2026-07-13T08:57:19.113Z",
+    "postedAt": "Posted 4 Days Ago",
+    "scrapedAt": "2026-07-14T07:52:46.575Z",
     "language": "de",
     "locationParsed": {
       "raw": "Munich",
@@ -62,7 +62,7 @@
       }
     },
     "postedAt": "Posted 30+ Days Ago",
-    "scrapedAt": "2026-07-13T08:57:19.113Z",
+    "scrapedAt": "2026-07-14T07:52:46.575Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -71,43 +71,6 @@
       "city": "3 Locations"
     },
     "locationConfidence": "low",
-    "workplaceConfidence": "medium"
-  },
-  {
-    "id": "immatics:L2pvYi9SZW1vdGUtV29yay1HZXJtYW55L0ZyZWVsYW5jZS1DbGluaWNhbC1SZXNlYXJjaC1Bc3NvY2lhdGUtLUNSQS0tX0pSMTAwNzAz",
-    "company": {
-      "id": "immatics",
-      "name": "Immatics",
-      "careersUrl": "https://immatics.wd3.myworkdayjobs.com/Immatics_External"
-    },
-    "title": "Freelance Clinical Research Associate (CRA)*",
-    "location": "Remote Work (Germany)",
-    "workplace": "remote",
-    "employmentType": null,
-    "department": null,
-    "team": null,
-    "url": "https://immatics.wd3.myworkdayjobs.com/job/Remote-Work-Germany/Freelance-Clinical-Research-Associate--CRA--_JR100703",
-    "applyUrl": "https://immatics.wd3.myworkdayjobs.com/job/Remote-Work-Germany/Freelance-Clinical-Research-Associate--CRA--_JR100703",
-    "description": {
-      "text": "OVERVIEW We are currently seeking an experienced Freelance Clinical Research Associate (CRA)* to support our Clinical Operations team on a temporary project basis. The assignment is planned to start in as soon as possible and is expected to run until the end of December. The role is designed as a flexible CRA position, supporting clinical trial sites across Germany, with a strong focus on Source Data Verification and site support. You should be available for at least 20 hours per week, with 32-40 hours per week availability preferred. The role will involve regular on-site visits across Germany, typically two to three visit days per week, corresponding to approximately one monitoring visit. You will work in an interdisciplinary environment with colleagues from Germany and the US and contribute to our mission of delivering novel PRAME immunotherapies to patients with cancer. YOUR MISSION Your primary responsibility will be to support clinical trial site management and monitoring activities in compliance with ICH-GCP guidelines, applicable regulations, and internal SOPs. Your tasks will include: Adhering to the clinical monitoring targets and expectations and engaging in regular alignment with the CTM to ensure a consistent understanding of these requirements and project objectives. Performing and supporting on‑site monitoring visits, including source data verification (SDV), Investigator Site File (ISF) checks, and other routine monitoring activities as outlined in the Clinical Monitoring Plan (CMP). Supporting the maintenance and updating of trial‑specific tracking tools as applicable. Supporting the collection of site‑specific clinical trial documents as required. Supporting Trial Master File (TMF) filing activities and TMF completeness checks. Actively contributing to clinical trial site management and engagement to establish and maintain strong site relationships. Supporting oversight of project‑specific training for clinical trial sites. Reviewing patient recruitment progress and clinical data capture and initiating appropriate actions to ensure trial objectives are met. Supporting or performing other ad‑hoc CRA tasks, as necessary, and in alignment with the primary CTM and relevant project stakeholders. Providing backup support to other team members as needed (e.g., during PTO, holidays, or sick leave). YOUR PROFILE You hold a degree in life sciences, nursing, medicine, pharmacy, or a comparable field and have solid experience as a Clinical Research Associate within the pharmaceutical, biotechnology, or CRO environment. You bring hands-on experience in on-site monitoring and Source Data Verification. In-depth knowledge of ICH-GCP, applicable regulatory requirements, and clinical trial systems such as eTMF, CTMS, EDC, and IRT is required. Experience in oncology clinical trials is preferred, but not mandatory. Excellent communication skills in German and English are required. You should also be willing and able to travel regularly within Germany. NOTICE *We value diversity and inclusion. Immatics N.V. and all Immatics subsidiaries are equal opportunity employers that evaluate qualified applicants without regard to race, color, national origin, religion, sex, age, marital status, disability, veteran status, sexual orientation, gender identity, or other characteristics protected by law. ABOUT IMMATICS Immatics is committed to making a meaningful impact on the lives of patients with cancer. We are the global leader in precision targeting of PRAME, a target expressed in more than 50 cancers. Our cutting-edge science and robust clinical pipeline form the broadest PRAME franchise with the most PRAME indications and modalities, spanning TCR T-cell therapies and TCR bispecifics.",
-      "html": null
-    },
-    "source": {
-      "kind": "workday_inpage_fetch",
-      "raw": {
-        "externalPath": "/job/Remote-Work-Germany/Freelance-Clinical-Research-Associate--CRA--_JR100703"
-      }
-    },
-    "postedAt": "Posted 10 Days Ago",
-    "scrapedAt": "2026-07-13T08:57:19.113Z",
-    "language": "en",
-    "locationParsed": {
-      "raw": "Remote Work (Germany)",
-      "country": "Germany",
-      "region": null,
-      "city": "Remote Work"
-    },
-    "locationConfidence": "medium",
     "workplaceConfidence": "medium"
   },
   {
@@ -136,7 +99,7 @@
       }
     },
     "postedAt": "Posted 30+ Days Ago",
-    "scrapedAt": "2026-07-13T08:57:19.113Z",
+    "scrapedAt": "2026-07-14T07:52:46.575Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -173,7 +136,7 @@
       }
     },
     "postedAt": "Posted 30+ Days Ago",
-    "scrapedAt": "2026-07-13T08:57:19.113Z",
+    "scrapedAt": "2026-07-14T07:52:46.575Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
