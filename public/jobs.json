@@ -24,8 +24,8 @@
         "externalPath": "/job/Munich/Senior-Executive-Assistant---Associate-Manager_JR100704"
       }
     },
-    "postedAt": "Posted 11 Days Ago",
-    "scrapedAt": "2026-07-21T08:15:33.535Z",
+    "postedAt": "Posted 12 Days Ago",
+    "scrapedAt": "2026-07-22T08:16:02.082Z",
     "language": "de",
     "locationParsed": {
       "raw": "Munich",
@@ -62,7 +62,44 @@
       }
     },
     "postedAt": "Posted 30+ Days Ago",
-    "scrapedAt": "2026-07-21T08:15:33.535Z",
+    "scrapedAt": "2026-07-22T08:16:02.082Z",
+    "language": "en",
+    "locationParsed": {
+      "raw": "3 Locations",
+      "country": null,
+      "region": null,
+      "city": "3 Locations"
+    },
+    "locationConfidence": "low",
+    "workplaceConfidence": "medium"
+  },
+  {
+    "id": "immatics:L2pvYi9NdW5pY2gvU2VuaW9yLU1hbmFnZXItQ01DLUJpb2xvZ2ljc19KUjEwMDcxNA",
+    "company": {
+      "id": "immatics",
+      "name": "Immatics",
+      "careersUrl": "https://immatics.wd3.myworkdayjobs.com/Immatics_External"
+    },
+    "title": "Senior Manager CMC Biologics",
+    "location": "3 Locations",
+    "workplace": "hybrid",
+    "employmentType": null,
+    "department": null,
+    "team": null,
+    "url": "https://immatics.wd3.myworkdayjobs.com/job/Munich/Senior-Manager-CMC-Biologics_JR100714",
+    "applyUrl": "https://immatics.wd3.myworkdayjobs.com/job/Munich/Senior-Manager-CMC-Biologics_JR100714",
+    "description": {
+      "text": "OVERVIEW We are currently seeking a Senior Manager* to strengthen our CMC Biologics department. You will work in an interdisciplinary environment with colleagues from Germany, ideally based in Munich within a hybrid work set-up. Alternatively, the position can be located in Tübingen or performed remotely within Germany. In this role, you will contribute to our mission of delivering novel PRAME immunotherapies to patients with cancer. This is an 18-month fixed-term position that can be performed either full-time or part-time (min. 32 hours/ week). YOUR MISSION Your main responsibilities will include but are not limited to the following tasks: Author, review, and maintain CMC and GMP documentation in accordance with regulatory requirements and industry best practices. Prepare and review technical and GMP documentation supporting development, manufacturing, technology transfer, validation, and PPQ activities. Support late-stage GMP manufacturing, commercial readiness, and PPQ execution. Collaborate with CDMOs, CROs, Qualified Persons (QPs), and internal stakeholders to ensure successful program delivery. Contribute to CMC content for BLA, NDA, and other global regulatory submissions. Act as a key scientific subject matter expert (SME), supporting manufacturing investigations, technical issue resolution, and technology transfer activities. Partner with CMC Biologics, Regulatory Affairs, Quality Assurance, and Project Management teams to ensure milestones, supply continuity, and compliance. Maintain effective communication with internal and external stakeholders. YOUR PROFILE You hold an advanced degree in a natural or life sciences discipline and have 7&#43; years of relevant experience in the biopharmaceutical industry, with a background in CMC Development, Technical Operations, Process Development, Analytics, Manufacturing Sciences, or related functions. You bring solid knowledge of biologics development, preferably antibodies, and ideally have experience supporting late-stage development programs, including Phase III, PPQ, and regulatory submission activities. A strong understanding of cGMP requirements, ICH guidelines, and global regulatory expectations, combined with excellent technical writing skills, is essential. You are a highly proactive professional with a structured and solution-oriented mindset. You excel at managing complex activities, balancing multiple priorities, and collaborating across functions and organizations. Strong communication and stakeholder management skills enable you to effectively engage with internal teams, external partners, and senior stakeholders while driving projects forward in a fast-paced environment. Your profile is complemented by excellent English skills (at least C1 level) and preferably proficiency in German. WHY US? We are the global leader in precision targeting of PRAME. Driven by our mission to make an impact on the lives of patients with cancer, we are a committed and inspired team and cherish the collegial, highly motivated, and family-friendly atmosphere within Immatics. Our culture allows for a high level of originality, independent thinking, and initiative. We believe in supporting our employees’ professional and social skills: We enable them to join conferences and trainings as well as to enjoy our Immatics benefits – e.g., job bike, job ticket, Health Programs, childcare benefits, relocation allowance, Company summer and winter events. NOTICE *We value diversity and inclusion. Immatics N.V. and all Immatics subsidiaries are equal opportunity employers that evaluate qualified applicants without regard to race, color, national origin, religion, sex, age, marital status, disability, veteran status, sexual orientation, gender identity, or other characteristics protected by law.",
+      "html": null
+    },
+    "source": {
+      "kind": "workday_inpage_fetch",
+      "raw": {
+        "externalPath": "/job/Munich/Senior-Manager-CMC-Biologics_JR100714"
+      }
+    },
+    "postedAt": "Posted Yesterday",
+    "scrapedAt": "2026-07-22T08:16:02.082Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
