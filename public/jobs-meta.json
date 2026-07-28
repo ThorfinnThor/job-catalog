@@ -1,5 +1,5 @@
 {
-  "scrapedAt": "2026-07-27T09:39:22.150Z",
+  "scrapedAt": "2026-07-28T08:23:46.538Z",
   "enabledCompanies": [
     {
       "id": "immatics",
@@ -43,7 +43,7 @@
     }
   ],
   "scrapedValidByCompany": {
-    "immatics": 2,
+    "immatics": 3,
     "gsk": 0,
     "pfizer": 0,
     "jnj": 0,
@@ -52,13 +52,13 @@
     "sanofi": 0,
     "astrazeneca": 0
   },
-  "totalBeforeLangFilter": 2,
-  "totalAfterLangFilter": 2,
+  "totalBeforeLangFilter": 3,
+  "totalAfterLangFilter": 3,
   "byCompanyBeforeLangFilter": {
-    "immatics": 2
+    "immatics": 3
   },
   "byCompanyAfterLangFilter": {
-    "immatics": 2
+    "immatics": 3
   },
   "langPolicy": {
     "keep": [

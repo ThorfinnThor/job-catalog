@@ -24,8 +24,8 @@
         "externalPath": "/job/Munich/Senior-Executive-Assistant---Associate-Manager_JR100704"
       }
     },
-    "postedAt": "Posted 17 Days Ago",
-    "scrapedAt": "2026-07-27T09:38:53.485Z",
+    "postedAt": "Posted 18 Days Ago",
+    "scrapedAt": "2026-07-28T08:23:19.479Z",
     "language": "de",
     "locationParsed": {
       "raw": "Munich",
@@ -34,6 +34,43 @@
       "city": "Munich"
     },
     "locationConfidence": "low",
+    "workplaceConfidence": "low"
+  },
+  {
+    "id": "immatics:L2pvYi9UdWViaW5nZW4tR2VybWFueS9SZXNlYXJjaC1Bc3NvY2lhdGUtVHJhbnNsYXRpb25hbC1TY2llbmNlLV9KUjEwMDcxNw",
+    "company": {
+      "id": "immatics",
+      "name": "Immatics",
+      "careersUrl": "https://immatics.wd3.myworkdayjobs.com/Immatics_External"
+    },
+    "title": "Research Associate Translational Science*",
+    "location": "Tuebingen (Germany)",
+    "workplace": "unknown",
+    "employmentType": null,
+    "department": null,
+    "team": null,
+    "url": "https://immatics.wd3.myworkdayjobs.com/job/Tuebingen-Germany/Research-Associate-Translational-Science-_JR100717",
+    "applyUrl": "https://immatics.wd3.myworkdayjobs.com/job/Tuebingen-Germany/Research-Associate-Translational-Science-_JR100717",
+    "description": {
+      "text": "ÜBERBLICK Wir suchen zum nächstmöglichen Zeitpunkt eine/n Research Associate * zur Verstärkung des Translational Research and Biomakers-Teams am Standort Tübingen. Sie arbeiten in einem interdisziplinären Umfeld mit Personen aus dem wissenschaftlichen Bereich zusammen. Durch Ihr pro-aktives Denken und Handeln, Ihre Kompetenz und Ihr Engagement tragen Sie zu unserer Mission bei, neuartige PRAME-Immuntherapien für an Krebs erkrankte Menschen zu entwickeln. Die Stelle ist auf 18 Monate befristet und kann in Voll- oder Teilzeit (mind. 30 Wochenstunden) besetzt werden. IHRE AUFGABEN Es erwartet Sie ein vielfältiges Aufgabenspektrum mit folgenden Schwerpunkten: Planung, Durchführung und Auswertung von immunologischen Arbeiten innerhalb des Immunomonitorings internationaler klinischer Studien Breites Spektrum an immunologischen Assays (z.B. PBMC Isolation, Durchflusszytometrie, ELISPOT, ELISA) Etablierung und Weiterentwicklung von neuen immunologischen Methoden und Prozessen im Labor Betreuung von Laborinstrumenten und Mitwirkung bei der Erstellung und Überarbeitung von fachgebietsbezogenen Arbeitsanweisungen für Labormethoden und Geräte (SOPs und Guidelines) Aufbau und Vertiefung von Kenntnissen in weiteren Methodenbereichen IHR PROFIL Sie haben eine abgeschlossene Ausbildung als BTA, MTA oder CTA, ein abgeschlossenes naturwissenschaftliches Studium (B.Sc./M.Sc.) oder eine vergleichbare Qualifikation, bevorzugt mit einer immunologischen und/ oder onkologischen Ausrichtung. Erfahrungen in oben genannten Aufgabengebieten, insbesondere Kenntnisse in funktionellen Assays mit zytotoxischen Zellen sowie durchflusszytometrischen Messungen, sind wünschenswert. Für diese Tätigkeiten bringen Sie einen hohen Grad an Eigenverantwortung, viel Begeisterungsfähigkeit und Teamfähigkeit mit und überzeugen durch Ihr strukturiertes und zuverlässiges Vorgehen. Ihr Profil wird abgerundet durch Ihre flexible Arbeitsweise und Ihre sehr guten Deutsch- und Englischkenntnisse in Wort und Schrift (mind. C1-Level). Wir gehen von guten Kenntnissen gängiger Computer-Anwendungen (MS Office) aus. WARUM WIR? Wir sind weltweit führend in der Entwicklung von zielgerichteten Therapien gegen PRAME. Da es unsere Mission ist, das Leben von an Krebs erkrankten Menschen zu verbessern, sind wir ein einsatzfreudiges und begeisterungsfähiges Team und legen viel Wert auf ein kollegiales und vertrauensvolles Miteinander. Es ist uns ebenfalls wichtig, die professionelle und persönliche Weiterbildung unserer Teammitglieder aktiv zu fördern; deshalb gibt es bei uns auch zusätzliches „Drumherum“, wie JobRad, Kindergartenzuschuss, Gesundheitskurse und Umzugskosten (Beispiele). HINWEIS *Wir legen Wert auf Vielfalt und Inklusion. Die Immatics N.V. und alle Immatics-Tochtergesellschaften fördern Chancengleichheit und bewerten Bewerber*innen ohne Rücksicht auf nationale Herkunft, Hautfarbe, Religion, Geschlecht, Alter, Familienstand, Behinderung, sexuelle Orientierung, Geschlechtsidentität oder andere gesetzlich geschützte Merkmale. ÜBER IMMATICS Immatics hat es sich zum Ziel gesetzt, das Leben von Patienten mit Krebserkrankungen maßgeblich zu verbessern. Wir sind weltweit führend in der Entwicklung von zielgerichteten Therapien gegen PRAME, einer Tumorzielstruktur, die in mehr als 50 Krebsarten vorkommt. Unsere innovative Forschung und unsere breit aufgestellte klinische Pipeline bilden das umfassendste PRAME-Portfolio, das die meisten PRAME-positiven Tumorarten und Therapieansätze abdeckt, darunter TCR-T-Zell-Therapien sowie bispezifische TCR-Moleküle.",
+      "html": null
+    },
+    "source": {
+      "kind": "workday_inpage_fetch",
+      "raw": {
+        "externalPath": "/job/Tuebingen-Germany/Research-Associate-Translational-Science-_JR100717"
+      }
+    },
+    "postedAt": "Posted Yesterday",
+    "scrapedAt": "2026-07-28T08:23:19.479Z",
+    "language": "de",
+    "locationParsed": {
+      "raw": "Tuebingen (Germany)",
+      "country": "Germany",
+      "region": null,
+      "city": "Tuebingen"
+    },
+    "locationConfidence": "medium",
     "workplaceConfidence": "low"
   },
   {
@@ -61,8 +98,8 @@
         "externalPath": "/job/Munich/Senior-Manager-CMC-Biologics_JR100714"
       }
     },
-    "postedAt": "Posted 6 Days Ago",
-    "scrapedAt": "2026-07-27T09:38:53.485Z",
+    "postedAt": "Posted 7 Days Ago",
+    "scrapedAt": "2026-07-28T08:23:19.479Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
