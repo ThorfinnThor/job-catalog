@@ -24,8 +24,8 @@
         "externalPath": "/job/Munich/Senior-Executive-Assistant---Associate-Manager_JR100704"
       }
     },
-    "postedAt": "Posted 25 Days Ago",
-    "scrapedAt": "2026-08-04T08:27:35.157Z",
+    "postedAt": "Posted 26 Days Ago",
+    "scrapedAt": "2026-08-05T09:05:59.005Z",
     "language": "de",
     "locationParsed": {
       "raw": "Munich",
@@ -61,8 +61,8 @@
         "externalPath": "/job/Tuebingen-Germany/Research-Associate-Translational-Science-_JR100717"
       }
     },
-    "postedAt": "Posted 8 Days Ago",
-    "scrapedAt": "2026-08-04T08:27:35.157Z",
+    "postedAt": "Posted 9 Days Ago",
+    "scrapedAt": "2026-08-05T09:05:59.005Z",
     "language": "de",
     "locationParsed": {
       "raw": "Tuebingen (Germany)",
@@ -72,6 +72,43 @@
     },
     "locationConfidence": "medium",
     "workplaceConfidence": "low"
+  },
+  {
+    "id": "immatics:L2pvYi9NdW5pY2gvU2VuaW9yLUNsaW5pY2FsLVJlc2VhcmNoLUFzc29jaWF0ZS0tQ1JBLS1fSlIxMDA3MjQ",
+    "company": {
+      "id": "immatics",
+      "name": "Immatics",
+      "careersUrl": "https://immatics.wd3.myworkdayjobs.com/Immatics_External"
+    },
+    "title": "Senior Clinical Research Associate (CRA)*",
+    "location": "3 Locations",
+    "workplace": "remote",
+    "employmentType": null,
+    "department": null,
+    "team": null,
+    "url": "https://immatics.wd3.myworkdayjobs.com/job/Munich/Senior-Clinical-Research-Associate--CRA--_JR100724",
+    "applyUrl": "https://immatics.wd3.myworkdayjobs.com/job/Munich/Senior-Clinical-Research-Associate--CRA--_JR100724",
+    "description": {
+      "text": "OVERVIEW We are currently seeking a full-time (40 hrs.) Senior Clinical Research Associate (CRA)* to strengthen our Clinical Operations department. You will work in Tübingen, Munich or remote within Germany in an interdisciplinary environment with colleagues from Germany and the US and will contribute to our mission of delivering novel PRAME immunotherapies to patients with cancer. YOUR MISSION The primary responsibility of this position is to ensure clinical trial site management and monitoring activities in compliance with GCP guidelines, applicable regulations, and SOPs, including: Execution of clinical monitoring activities, including qualification, initiation, routine monitoring, and close-out visits Maintenance of Investigator Site Files and Trial Master Files Implementation of site management activities in line with trial-specific functional plans Preparation of accurate and timely visit reports Review of trial progress (e.g., patient recruitment, data capture, issue resolution, etc.) and initiation of appropriate actions Primary contact for clinical trial supplies and other stakeholders or vendors Participation in clinical trial team, department and company meetings Contribution to the development of trial specific documents Contribution to the continuous improvement of Clinical Operations processes and procedures YOUR PROFILE You hold a Bachelor’s degree in life sciences, nursing or a comparable field and have 2&#43; years of experience in on-site monitoring (all visit types) within the pharmaceutical or biotechnology industry. In-depth knowledge of ICH-GCP, applicable regulations, and clinical trial systems (e.g., eTMF, CTMS, EDC, IRT) is required. Basic knowledge of oncology, including terminology and underlying science, is preferred. We expect a high level of attention to detail, strong time management skills, including independent prioritization, and a solution-oriented working style. You thrive in a dynamic, quality-driven environment and bring excellent presentation and communication skills in German and English (minimum C1 level). A positive attitude, strong team spirit, and willingness to travel up to 50-75% complete your profile. WHY US? We are the global leader in precision targeting of PRAME. Driven by our mission to make an impact on the lives of patients with cancer, we are a committed and inspired team and cherish the collegial, highly motivated, and family-friendly atmosphere within Immatics. Our culture allows for a high level of originality, independent thinking, and initiative. We believe in supporting our employees’ professional and social skills: We enable them to join conferences and trainings as well as to enjoy our Immatics benefits – e.g., job bike, job ticket, Health Programs, childcare benefits, relocation allowance, Company summer and winter events. NOTICE *We value diversity and inclusion. Immatics N.V. and all Immatics subsidiaries are equal opportunity employers that evaluate qualified applicants without regard to race, color, national origin, religion, sex, age, marital status, disability, veteran status, sexual orientation, gender identity, or other characteristics protected by law. ABOUT IMMATICS Immatics is committed to making a meaningful impact on the lives of patients with cancer. We are the global leader in precision targeting of PRAME, a target expressed in more than 50 cancers. Our cutting-edge science and robust clinical pipeline form the broadest PRAME franchise with the most PRAME indications and modalities, spanning TCR T-cell therapies and TCR bispecifics.",
+      "html": null
+    },
+    "source": {
+      "kind": "workday_inpage_fetch",
+      "raw": {
+        "externalPath": "/job/Munich/Senior-Clinical-Research-Associate--CRA--_JR100724"
+      }
+    },
+    "postedAt": "Posted Today",
+    "scrapedAt": "2026-08-05T09:05:59.005Z",
+    "language": "en",
+    "locationParsed": {
+      "raw": "3 Locations",
+      "country": null,
+      "region": null,
+      "city": "3 Locations"
+    },
+    "locationConfidence": "low",
+    "workplaceConfidence": "medium"
   },
   {
     "id": "immatics:L2pvYi9NdW5pY2gvU2VuaW9yLU1hbmFnZXItQ01DLUJpb2xvZ2ljc19KUjEwMDcxNA",
@@ -98,8 +135,8 @@
         "externalPath": "/job/Munich/Senior-Manager-CMC-Biologics_JR100714"
       }
     },
-    "postedAt": "Posted 14 Days Ago",
-    "scrapedAt": "2026-08-04T08:27:35.157Z",
+    "postedAt": "Posted 15 Days Ago",
+    "scrapedAt": "2026-08-05T09:05:59.005Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
