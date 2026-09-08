@@ -1,5 +1,42 @@
 [
   {
+    "id": "immatics:L2pvYi9SZW1vdGUtV29yay1HZXJtYW55L1hNTE5BTUUtLVNlbmlvci0tTWFuYWdlci1NZWRpY2FsLURhdGEtUmV2aWV3LV9KUjEwMDc0Nw",
+    "company": {
+      "id": "immatics",
+      "name": "Immatics",
+      "careersUrl": "https://immatics.wd3.myworkdayjobs.com/Immatics_External"
+    },
+    "title": "(Senior) Manager Medical Data Review*",
+    "location": "3 Locations",
+    "workplace": "remote",
+    "employmentType": null,
+    "department": null,
+    "team": null,
+    "url": "https://immatics.wd3.myworkdayjobs.com/job/Remote-Work-Germany/XMLNAME--Senior--Manager-Medical-Data-Review-_JR100747",
+    "applyUrl": "https://immatics.wd3.myworkdayjobs.com/job/Remote-Work-Germany/XMLNAME--Senior--Manager-Medical-Data-Review-_JR100747",
+    "description": {
+      "text": "OVERVIEW We are currently seeking a (Senior) Manager Medical Data Review* to strengthen our Clinical Development department. You will work in Tübingen, Munich or fully remote within Germany in an interdisciplinary environment with colleagues from Germany and the US and will contribute to our mission of delivering novel PRAME immunotherapies to patients with cancer. This position is a fixed-term role of 18 months. YOUR MISSION Your main responsibilities will include but are not limited to the following tasks: Author Medical Data Review SOPs and plans aligned with project plans and Immatics procedures. Compile Medical Review Checklists with Physicians (Medical Monitors) and Data Management. Generate and review data extracts and outputs from EDC and JReview systems in collaboration with Data Management. Review outputs for compliance with project plans and Immatics procedures. Review medical data for consistency, plausibility, and completeness across studies and projects. Manage medical queries, consulting Physicians as needed and applying knowledge of study protocols and key study documents. Prepare Medical Data Review summaries and findings reports. Review and resolve QC findings. Attend Investigator Meetings as required. Maintain proficiency in EDC systems and train clinical team members. Collaborate with internal and external Data Management stakeholders. Support Medical Monitoring, Vendor Management, and other physician-directed activities. YOUR PROFILE You hold a degree in a life sciences discipline (e.g., Biology, Pharmacy, or Medicine) and/or are a qualified healthcare professional such as a nurse, complemented by relevant hands-on exposure in these fields. You bring 2&#43; years of professional experience as a Medical Data Reviewer in a CRO or pharmaceutical/biotechnology company, with a strong focus on oncology clinical trials. Strong IT skills, particularly in Microsoft Excel, and the ability to adapt to different systems and databases are among your strengths. You demonstrate strong analytical thinking, independence, and excellent communication skills in English. You are adaptable, scientifically driven, and approach your work in a structured, reliable, and solution-oriented manner, with a high degree of personal accountability and strong interpersonal skills. WHY US? We are the global leader in precision targeting of PRAME. Driven by our mission to make an impact on the lives of patients with cancer, we are a committed and inspired team and cherish the collegial, highly motivated, and family-friendly atmosphere within Immatics. Our culture allows for a high level of originality, independent thinking, and initiative. We believe in supporting our employees’ professional and social skills: We enable them to join conferences and trainings as well as to enjoy our Immatics benefits – e.g., job bike, job ticket, Health Programs, childcare benefits, relocation allowance, Company summer and winter events. NOTICE *We value diversity and inclusion. Immatics N.V. and all Immatics subsidiaries are equal opportunity employers that evaluate qualified applicants without regard to race, color, national origin, religion, sex, age, marital status, disability, veteran status, sexual orientation, gender identity, or other characteristics protected by law. ABOUT IMMATICS Immatics is committed to making a meaningful impact on the lives of patients with cancer. We are the global leader in precision targeting of PRAME, a target expressed in more than 50 cancers. Our cutting-edge science and robust clinical pipeline form the broadest PRAME franchise with the most PRAME indications and modalities, spanning TCR T-cell therapies and TCR bispecifics.",
+      "html": null
+    },
+    "source": {
+      "kind": "workday_inpage_fetch",
+      "raw": {
+        "externalPath": "/job/Remote-Work-Germany/XMLNAME--Senior--Manager-Medical-Data-Review-_JR100747"
+      }
+    },
+    "postedAt": "Posted Today",
+    "scrapedAt": "2026-09-08T10:26:04.851Z",
+    "language": "en",
+    "locationParsed": {
+      "raw": "3 Locations",
+      "country": null,
+      "region": null,
+      "city": "3 Locations"
+    },
+    "locationConfidence": "low",
+    "workplaceConfidence": "medium"
+  },
+  {
     "id": "immatics:L2pvYi9UdWViaW5nZW4tR2VybWFueS9SZXNlYXJjaC1Bc3NvY2lhdGUtVHJhbnNsYXRpb25hbC1TY2llbmNlLV9KUjEwMDcxNw",
     "company": {
       "id": "immatics",
@@ -25,7 +62,7 @@
       }
     },
     "postedAt": "Posted 30+ Days Ago",
-    "scrapedAt": "2026-09-07T11:18:44.941Z",
+    "scrapedAt": "2026-09-08T10:26:04.851Z",
     "language": "de",
     "locationParsed": {
       "raw": "Tuebingen (Germany)",
