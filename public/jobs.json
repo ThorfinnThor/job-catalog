@@ -24,14 +24,51 @@
         "externalPath": "/job/Remote-Work-Germany/XMLNAME--Senior--Manager-Medical-Data-Review-_JR100747"
       }
     },
-    "postedAt": "Posted 6 Days Ago",
-    "scrapedAt": "2026-09-14T11:28:33.841Z",
+    "postedAt": "Posted 7 Days Ago",
+    "scrapedAt": "2026-09-15T10:50:55.988Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
       "country": null,
       "region": null,
       "city": "3 Locations"
+    },
+    "locationConfidence": "low",
+    "workplaceConfidence": "medium"
+  },
+  {
+    "id": "immatics:L2pvYi9Ib3VzdG9uL0Vudmlyb25tZW50YWwtTW9uaXRvcmluZy1TcGVjaWFsaXN0LUlfSlIxMDA3NDg",
+    "company": {
+      "id": "immatics",
+      "name": "Immatics",
+      "careersUrl": "https://immatics.wd3.myworkdayjobs.com/Immatics_External"
+    },
+    "title": "Environmental Monitoring Specialist I",
+    "location": "Houston",
+    "workplace": "onsite",
+    "employmentType": null,
+    "department": null,
+    "team": null,
+    "url": "https://immatics.wd3.myworkdayjobs.com/job/Houston/Environmental-Monitoring-Specialist-I_JR100748",
+    "applyUrl": "https://immatics.wd3.myworkdayjobs.com/job/Houston/Environmental-Monitoring-Specialist-I_JR100748",
+    "description": {
+      "text": "Join Immatics and shape the future of cancer immunotherapy ; one patient at a time! Immatics is committed to making a meaningful impact on the lives of patients with cancer. We are the global leader in precision targeting of PRAME , a target expressed in more than 50 cancers. Our cutting-edge science and robust clinical pipeline form the broadest PRAME franchise with the most PRAME indications and modalities, spanning TCR T-cell therapies and TCR bispecifics. Why Join Us? Innovative Environment: Help to pioneer advancements in cancer immunotherapy. Collaborative Culture: Be part of a diverse team dedicated to your professional growth. Global Impact: Contribute to therapies that make a lasting impact on patients globally. Role Overview We are seeking an Environmental Monitoring Specialist I to support our Microbiology Environmental Monitoring team. The main role of the Quality Control Specialist, Environmental Monitoring I is to provide daily operational support and environmental monitoring (EM) services to the Immatics aseptic production areas and perform/provide safety testing for final drug product release. Schedule : 7:00 AM – 3:30 PM; Monday to Friday; On-site Reports to : Associate Environmental Monitoring Manager Location : 13203 Murphy Road Suite 100 Stafford, TX 77477 Basic Qualifications: Bachelor’s degree in a science-related field, preferably Microbiology 0-1 years&#39; experience in a related role Preferred Qualifications: Experience with aseptic processing and working in cleanroom environments. Intermediate proficiency in Microsoft Excel. Strong professional writing skills, with the ability to prepare clear, accurate, and well-organized documentation. In this role you will: Perform environmental monitoring of aseptic production areas, including viable air, surface, total particulate, and personnel monitoring. Perform microbiological testing activities, including sample incubation, result interpretation, microbial identification, media growth promotion, and coordination of samples with contract laboratories. Support aseptic process simulations through environmental monitoring, inspection, and evaluation activities. Execute equipment qualification activities and support ongoing equipment cleaning, maintenance, and readiness. Perform safety testing of in-process and final drug products in accordance with established procedures. Support general laboratory operations, including inventory management, sample receipt and disposition, and laboratory cleaning and disinfection. What do we offer? At Immatics, we believe in investing in our team’s health, safety and well-being. Here’s what you can expect if you join Immatics Comprehensive Benefits : Competitive rates for Health, Dental, and Vision Insurance PTO accrued bi-weekly, with up to 80 hours available to borrow and a maximum accrued balance of 240 hours. 12 company paid holidays 10 days of sick time 100% employer-paid life insurance up to at 1x annual salary, up to one hundred thousand dollars 100% employer-paid short- and long-Term disability coverage 401(k) with immediate eligibility and company match… The company will match 100% of your contributions up to 3% of your base salary for the first two years of employment, 4% for years 2-3 of employment, and up to 5% of your salary from the fourth year onward of continued employment. Partially paid parental leave for eligible employees. Additional voluntary employee-paid benefits and services, including accident, hospital indemnity, and critical illness insurance, as well as identity theft protection and pet insurance.",
+      "html": null
+    },
+    "source": {
+      "kind": "workday_inpage_fetch",
+      "raw": {
+        "externalPath": "/job/Houston/Environmental-Monitoring-Specialist-I_JR100748"
+      }
+    },
+    "postedAt": "Posted Yesterday",
+    "scrapedAt": "2026-09-15T10:50:55.988Z",
+    "language": "en",
+    "locationParsed": {
+      "raw": "Houston",
+      "country": null,
+      "region": null,
+      "city": "Houston"
     },
     "locationConfidence": "low",
     "workplaceConfidence": "medium"
@@ -62,7 +99,7 @@
       }
     },
     "postedAt": "Posted 30+ Days Ago",
-    "scrapedAt": "2026-09-14T11:28:33.841Z",
+    "scrapedAt": "2026-09-15T10:50:55.988Z",
     "language": "de",
     "locationParsed": {
       "raw": "Tuebingen (Germany)",
