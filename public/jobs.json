@@ -1,1 +1,39 @@
-[]
+[
+  {
+    "id": "immatics:L2pvYi9SZW1vdGUtV29yay1HZXJtYW55L0ZyZWVsYW5jZS1TaXRlLUNvbnRyYWN0LU1hbmFnZXItX0pSMTAwNzY3",
+    "company": {
+      "id": "immatics",
+      "name": "Immatics",
+      "careersUrl": "https://immatics.wd3.myworkdayjobs.com/Immatics_External"
+    },
+    "title": "Freelance Site Contract Manager*",
+    "location": "Remote Work (Germany)",
+    "workplace": "remote",
+    "employmentType": null,
+    "department": null,
+    "team": null,
+    "url": "https://immatics.wd3.myworkdayjobs.com/job/Remote-Work-Germany/Freelance-Site-Contract-Manager-_JR100767",
+    "applyUrl": "https://immatics.wd3.myworkdayjobs.com/job/Remote-Work-Germany/Freelance-Site-Contract-Manager-_JR100767",
+    "description": {
+      "text": "OVERVIEW We are currently seeking a Freelance Site Contract Manager* to support our Clinical Outsourcing and Contract Management team on a temporary basis. This freelance engagement is based on business demand, with project-based work packages assigned as needed and varying in scope and volume. In this role, you will work in an interdisciplinary environment with employees across Germany and the US, contributing to our mission of delivering novel PRAME immunotherapies to patients with cancer. YOUR MISSION Your primary responsibility will be to independently manage Clinical Trial Agreements (CTAs) and site budgets for clinical trial sites in Germany and Spain, ensuring timely contract execution in collaboration with Clinical Operations, Legal, and other stakeholders. Key responsibilities include: Prepare, review, negotiate, and finalize CTAs, site budgets, and amendments. Lead contract and budget negotiations with clinical trial sites, including university hospitals and legal departments. Develop site budgets using internal and external benchmarks and approved study assumptions. Apply country-specific contracting requirements and seek legal or local support where needed. Identify and mitigate contractual risks, negotiation challenges, and potential impacts on study timelines. Manage contracting timelines, prioritize activities, and drive timely execution. Apply approved negotiation positions and escalate exceptions as required. Coordinate effectively with sites, study teams, Legal, and other stakeholders. Review contract redlines, resolve comments within authority levels, and support other negotiators as needed. Maintain accurate contracting records and provide transparency on status, risks, and next steps. YOUR PROFILE You bring experience in clinical trial site contracting within the pharmaceutical, biotechnology, or CRO industry and have a proven track record of independently negotiating and executing CTAs and site budgets in Germany and Spain, strong knowledge of relevant clinical trial regulations and country-specific requirements, and excellent communication skills in German and English. Experience in oncology, cell therapy, study start-up activities, sponsorship and CRO environments, as well as additional language skills and broader European contracting expertise, are considered an advantage. NOTICE *We value diversity and inclusion. Immatics N.V. and all Immatics subsidiaries are equal opportunity employers that evaluate qualified applicants without regard to race, color, national origin, religion, sex, age, marital status, disability, veteran status, sexual orientation, gender identity, or other characteristics protected by law. ABOUT IMMATICS Immatics is committed to making a meaningful impact on the lives of patients with cancer. We are the global leader in precision targeting of PRAME, a target expressed in more than 50 cancers. Our cutting-edge science and robust clinical pipeline form the broadest PRAME franchise with the most PRAME indications and modalities, spanning TCR T-cell therapies and TCR bispecifics.",
+      "html": null
+    },
+    "source": {
+      "kind": "workday_inpage_fetch",
+      "raw": {
+        "externalPath": "/job/Remote-Work-Germany/Freelance-Site-Contract-Manager-_JR100767"
+      }
+    },
+    "postedAt": "Posted Yesterday",
+    "scrapedAt": "2026-10-31T11:32:33.642Z",
+    "language": "en",
+    "locationParsed": {
+      "raw": "Remote Work (Germany)",
+      "country": "Germany",
+      "region": null,
+      "city": "Remote Work"
+    },
+    "locationConfidence": "medium",
+    "workplaceConfidence": "medium"
+  }
+]
