@@ -24,8 +24,8 @@
         "externalPath": "/job/Remote-Work-Germany/Freelance-Site-Contract-Manager-_JR100767"
       }
     },
-    "postedAt": "Posted 5 Days Ago",
-    "scrapedAt": "2026-11-04T13:39:00.623Z",
+    "postedAt": "Posted 6 Days Ago",
+    "scrapedAt": "2026-11-05T13:50:58.986Z",
     "language": "en",
     "locationParsed": {
       "raw": "Remote Work (Germany)",
@@ -34,6 +34,43 @@
       "city": "Remote Work"
     },
     "locationConfidence": "medium",
+    "workplaceConfidence": "medium"
+  },
+  {
+    "id": "immatics:L2pvYi9NdW5pY2gvU2VuaW9yLS1QcmluY2lwYWwtTWFuYWdlci1NZWRpY2FsLS0tU2NpZW50aWZpYy1Xcml0aW5nLV9KUjEwMDc2OQ",
+    "company": {
+      "id": "immatics",
+      "name": "Immatics",
+      "careersUrl": "https://immatics.wd3.myworkdayjobs.com/Immatics_External"
+    },
+    "title": "Senior/ Principal Manager Medical & Scientific Writing*",
+    "location": "2 Locations",
+    "workplace": "remote",
+    "employmentType": null,
+    "department": null,
+    "team": null,
+    "url": "https://immatics.wd3.myworkdayjobs.com/job/Munich/Senior--Principal-Manager-Medical---Scientific-Writing-_JR100769",
+    "applyUrl": "https://immatics.wd3.myworkdayjobs.com/job/Munich/Senior--Principal-Manager-Medical---Scientific-Writing-_JR100769",
+    "description": {
+      "text": "OVERVIEW We are currently seeking a Senior or Principal Manager Medical &amp; Scientific Writing* to join our Clinical Sciences team with a primary focus on Phase III clinical trials and Biologics License Application (BLA) submissions. You will work in Tübingen, Munich or remote within Germany (Germany) in an interdisciplinary environment with colleagues from clinical and non-clinical teams and will contribute to our mission of delivering novel PRAME immunotherapies to patients with cancer. This position is offered on a fixed-term contract for 24 months. YOUR MISSION As a part of cross-functional teams, you will independently manage assigned medical writing activities mainly for late-stage clinical trials and associated regulatory submissions. Your main responsibilities will include but are not limited to the following tasks: Plan, author and coordinate clinical documents for BLA submissions ensuring a consistent presentation and interpretation of clinical data across documents. Prepare regulatory documents supporting Phase 3 as well as early clinical trials, clinical trial applications in Europe, and IND submissions in the USA, including clinical trial protocols and amendments, investigator’s brochures, and clinical sections of Investigational Medicinal Product Dossiers. Prepare briefing books for scientific advice meetings in Europe and the USA including meetings supporting late-stage development and BLA submission planning. Write medical and scientific sections, develop document strategies and coordinate cross-functional input, reviews and comment resolution. Manage document timelines, dependencies and deliverables to meet study and submission milestones. Provide medical writing oversight of external writers and vendors, including review of document plans and drafts, coordination of feedback, and monitoring of quality and timelines. Perform and coordinate quality control of medical and scientific documents, including consistency checks against source data and across the clinical dossier. Research scientific and clinical development topics using the scientific literature and integrate key findings into regulatory documents and summaries for internal use. YOUR PROFILE You hold a Master’s degree, preferably a PhD, in life sciences, medicine, pharmacy, or a related field. You bring 4&#43; years of medical writing experience in the biopharmaceutical industry or a comparable environment, including substantial experience with Phase III clinical trials and BLA submissions. You have a strong understanding of regulatory requirements for clinical documents and submissions and are able to translate complex efficacy and safety data into clear, scientifically sound regulatory documents. Experience overseeing external medical writers or vendors is preferred. Expertise in immuno-oncology, particularly T-cell therapies or T-cell-engaging bispecifics, is highly desirable. You combine excellent English writing skills with strong analytical and organizational abilities and a high level of accuracy. You work independently, collaborate effectively across functions, manage complex reviews and timelines, and thrive in a dynamic, quality-driven environment. Experience using AI-assisted tools for medical writing and document quality control is an advantage. The final appointment level (Senior Manager or Principal Manager) will be aligned with the successful candidate’s experience and scope of responsibility. WHY US? We are the global leader in precision targeting of PRAME. Driven by our mission to make an impact on the lives of patients with cancer, we are a committed and inspired team and cherish the collegial, highly motivated, and family-friendly atmosphere within Immatics. We offer an innovative and collaborative environment where employees are empowered to contribute to groundbreaking cancer therapies and further their professional growth. To support their well-being, we provide opportunities for continuous learning, a company-sponsored pension scheme, childcare support, and our flexible “Two Out of Three” benefits concept, which allows employees to receive subsidies for two of the following options: EGYM Wellpass, JobRad, and JobTicket. NOTICE *We value diversity and inclusion. Immatics N.V. and all Immatics subsidiaries are equal opportunity employers that evaluate qualified applicants without regard to race, color, national origin, religion, sex, age, marital status, disability, veteran status, sexual orientation, gender identity, or other characteristics protected by law. ABOUT IMMATICS Immatics is committed to making a meaningful impact on the lives of patients with cancer. We are the global leader in precision targeting of PRAME, a target expressed in more than 50 cancers. Our cutting-edge science and robust clinical pipeline form the broadest PRAME franchise with the most PRAME indications and modalities, spanning TCR T-cell therapies and TCR bispecifics.",
+      "html": null
+    },
+    "source": {
+      "kind": "workday_inpage_fetch",
+      "raw": {
+        "externalPath": "/job/Munich/Senior--Principal-Manager-Medical---Scientific-Writing-_JR100769"
+      }
+    },
+    "postedAt": "Posted Today",
+    "scrapedAt": "2026-11-05T13:50:58.986Z",
+    "language": "en",
+    "locationParsed": {
+      "raw": "2 Locations",
+      "country": null,
+      "region": null,
+      "city": "2 Locations"
+    },
+    "locationConfidence": "low",
     "workplaceConfidence": "medium"
   }
 ]
