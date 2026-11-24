@@ -24,8 +24,8 @@
         "externalPath": "/job/Tuebingen-Germany/Scientist-Immunopeptidomics-_JR100772-1"
       }
     },
-    "postedAt": "Posted 3 Days Ago",
-    "scrapedAt": "2026-11-23T17:05:05.616Z",
+    "postedAt": "Posted 4 Days Ago",
+    "scrapedAt": "2026-11-24T16:51:20.739Z",
     "language": "en",
     "locationParsed": {
       "raw": "Tuebingen (Germany)",
@@ -61,8 +61,8 @@
         "externalPath": "/job/Munich/Job-Posting-Title-Senior--Principal-Manager-Central-Imaging-_JR100775"
       }
     },
-    "postedAt": "Posted 5 Days Ago",
-    "scrapedAt": "2026-11-23T17:05:05.616Z",
+    "postedAt": "Posted 6 Days Ago",
+    "scrapedAt": "2026-11-24T16:51:20.739Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -98,8 +98,8 @@
         "externalPath": "/job/Munich/Senior--Principal-Manager-Medical---Scientific-Writing-_JR100769"
       }
     },
-    "postedAt": "Posted 17 Days Ago",
-    "scrapedAt": "2026-11-23T17:05:05.616Z",
+    "postedAt": "Posted 18 Days Ago",
+    "scrapedAt": "2026-11-24T16:51:20.739Z",
     "language": "en",
     "locationParsed": {
       "raw": "3 Locations",
@@ -109,5 +109,79 @@
     },
     "locationConfidence": "low",
     "workplaceConfidence": "medium"
+  },
+  {
+    "id": "immatics:L2pvYi9UdWViaW5nZW4tR2VybWFueS9TcGVjaWFsaXN0LU1hc3MtU3BlY3Ryb21ldHJ5LV9KUjEwMDc3MS0x",
+    "company": {
+      "id": "immatics",
+      "name": "Immatics",
+      "careersUrl": "https://immatics.wd3.myworkdayjobs.com/Immatics_External"
+    },
+    "title": "Specialist Mass Spectrometry*",
+    "location": "Tuebingen (Germany)",
+    "workplace": "unknown",
+    "employmentType": null,
+    "department": null,
+    "team": null,
+    "url": "https://immatics.wd3.myworkdayjobs.com/job/Tuebingen-Germany/Specialist-Mass-Spectrometry-_JR100771-1",
+    "applyUrl": "https://immatics.wd3.myworkdayjobs.com/job/Tuebingen-Germany/Specialist-Mass-Spectrometry-_JR100771-1",
+    "description": {
+      "text": "OVERVIEW We are currently seeking a Specialist* to join our Mass Spectrometry team in Tuebingen, Germany. Your work will focus on high-end liquid chromatography–mass spectrometry (LC-MS) systems and the reliable analysis of samples for immunopeptidomics and proteomics, helping advance our platform toward future clinical applications and contributing to our mission of delivering novel PRAME immunotherapies to patients with cancer. Working closely with laboratory scientists and colleagues in Data Intelligence, you will help connect sample preparation, instrument operation and data evaluation through streamlined, digitally connected workflows. This is an opportunity to contribute your technical expertise and ideas, keep advanced analytical systems performing at their best and turn valuable samples into reliable, high-quality data. This position is offered on a fixed-term contract for 24 months. YOUR MISSION Your main responsibilities will include but are not limited to the following tasks: Coordinate sample receipt with laboratory scientists, prepare and load samples for LC-MS analysis, and organize measurement sequences to ensure an efficient, traceable workflow. Independently operate high-end LC-MS systems, monitor data acquisition and perform routine instrument care, maintenance and troubleshooting in coordination with service engineers and technical support. Perform and evaluate quality control and system suitability tests, monitor instrument performance and data quality, and investigate deviations to maintain reliable, reproducible measurements. Plan, perform and evaluate experiments to establish, test and optimize LC-MS methods in collaboration with scientists; support instrument qualification and method validation. Support initial data processing and review, and work with scientists and Data Intelligence colleagues to ensure the complete, well-documented transfer of data and sample information for downstream analysis. Maintain complete, traceable records of samples, methods, results, deviations and instrument activities in accordance with SOPs and applicable quality requirements, and help improve digital documentation and laboratory workflows. YOUR PROFILE You have completed training as a BTA, MTA/MTLA or CTA, or hold a Bachelor’s or Master’s degree in Chemistry, Biochemistry, Biotechnology or a related scientific field. Ideally, you bring industry experience in biotechnology or pharmaceuticals, particularly in analytical laboratory environments. Hands-on experience with HPLC/UHPLC and/or mass spectrometry, including instrument operation, maintenance and troubleshooting, is highly desirable. Experience with regulated laboratory processes, GCP-compliant documentation, SOPs, data integrity, sample traceability and electronic laboratory documentation is an advantage. You are passionate about optimizing laboratory workflows and have an interest in digital tools and AI-supported process improvements. You work in a structured, proactive and independent manner, while collaborating effectively across teams and adapting to changing priorities. Good written and spoken English is required; German language skills are a plus. WHY US? We are the global leader in precision targeting of PRAME. Driven by our mission to make an impact on the lives of patients with cancer, we are a committed and inspired team and cherish the collegial, highly motivated, and family-friendly atmosphere within Immatics. We offer an innovative and collaborative environment where employees are empowered to contribute to groundbreaking cancer therapies and further their professional growth. To support their well-being, we provide opportunities for continuous learning, a company-sponsored pension scheme, childcare support, and our flexible “Two Out of Three” benefits concept, which allows employees to receive subsidies for two of the following options: EGYM Wellpass, JobRad, and JobTicket. NOTICE *We value diversity and inclusion. Immatics N.V. and all Immatics subsidiaries are equal opportunity employers that evaluate qualified applicants without regard to race, color, national origin, religion, sex, age, marital status, disability, veteran status, sexual orientation, gender identity, or other characteristics protected by law. ABOUT IMMATICS Immatics is committed to making a meaningful impact on the lives of patients with cancer. We are the global leader in precision targeting of PRAME, a target expressed in more than 50 cancers. Our cutting-edge science and robust clinical pipeline form the broadest PRAME franchise with the most PRAME indications and modalities, spanning TCR T-cell therapies and TCR bispecifics.",
+      "html": null
+    },
+    "source": {
+      "kind": "workday_inpage_fetch",
+      "raw": {
+        "externalPath": "/job/Tuebingen-Germany/Specialist-Mass-Spectrometry-_JR100771-1"
+      }
+    },
+    "postedAt": "Posted Today",
+    "scrapedAt": "2026-11-24T16:51:20.739Z",
+    "language": "en",
+    "locationParsed": {
+      "raw": "Tuebingen (Germany)",
+      "country": "Germany",
+      "region": null,
+      "city": "Tuebingen"
+    },
+    "locationConfidence": "medium",
+    "workplaceConfidence": "low"
+  },
+  {
+    "id": "immatics:L2pvYi9UdWViaW5nZW4tR2VybWFueS9TYW1wbGUtTWFuYWdlbWVudC1TcGVjaWFsaXN0LV9KUjEwMDc3NC0x",
+    "company": {
+      "id": "immatics",
+      "name": "Immatics",
+      "careersUrl": "https://immatics.wd3.myworkdayjobs.com/Immatics_External"
+    },
+    "title": "Specialist Sample Management*",
+    "location": "Tuebingen (Germany)",
+    "workplace": "unknown",
+    "employmentType": null,
+    "department": null,
+    "team": null,
+    "url": "https://immatics.wd3.myworkdayjobs.com/job/Tuebingen-Germany/Sample-Management-Specialist-_JR100774-1",
+    "applyUrl": "https://immatics.wd3.myworkdayjobs.com/job/Tuebingen-Germany/Sample-Management-Specialist-_JR100774-1",
+    "description": {
+      "text": "OVERVIEW We are currently seeking a Specialist Sample Management* to join our Tissue and Cell Biology department in Tuebingen, Germany. Working with colleagues in Germany and the US, you will help coordinate and track commercially procured human tissue samples and clinical trial patient samples across our preclinical research and clinical departments. Your careful organization and documentation will contribute to our mission of delivering novel PRAME immunotherapies to patients with cancer. This position is offered on a fixed-term contract for 24 months. YOUR MISSION Your main responsibilities will include but are not limited to the following tasks: Coordinate sample receipt, packaging, and shipments to and from clinical sites, external partners, and Immatics departments. Maintain sample trackers to provide an accurate overview of expected, received, and analyzed samples. Maintain paper-based documentation in accordance with Good Clinical Practice (GCP) requirements and extract relevant information from patient pathology reports. Support routine laboratory activities, particularly sample processing, storage, and archiving. YOUR PROFILE You have completed training as a BTA, MTA/MTLA or CTA, or hold a Bachelor’s or Master’s degree in a life science, biomedical or related field. Ideally, you have experience in sample logistics, sample tracking, laboratory operations or GCP-compliant documentation. Familiarity with SOP-driven work, data integrity, sample traceability and accurate documentation is highly valued. Good written and spoken English is required; German language skills are an advantage. You work in a structured, proactive and detail-oriented manner, organizing your tasks independently and managing priorities effectively. You place great importance on accurate and traceable documentation and enjoy contributing to reliable and efficient laboratory processes. As a collaborative and dependable team player, you communicate effectively, support colleagues and adapt well to changing priorities and responsibilities. WHY US? We are the global leader in precision targeting of PRAME. Driven by our mission to make an impact on the lives of patients with cancer, we are a committed and inspired team and cherish the collegial, highly motivated, and family-friendly atmosphere within Immatics. We offer an innovative and collaborative environment where employees are empowered to contribute to groundbreaking cancer therapies and further their professional growth. To support their well-being, we provide opportunities for continuous learning, a company-sponsored pension scheme, childcare support, and our flexible “Two Out of Three” benefits concept, which allows employees to receive subsidies for two of the following options: EGYM Wellpass, JobRad, and JobTicket. NOTICE *We value diversity and inclusion. Immatics N.V. and all Immatics subsidiaries are equal opportunity employers that evaluate qualified applicants without regard to race, color, national origin, religion, sex, age, marital status, disability, veteran status, sexual orientation, gender identity, or other characteristics protected by law. ABOUT IMMATICS Immatics is committed to making a meaningful impact on the lives of patients with cancer. We are the global leader in precision targeting of PRAME, a target expressed in more than 50 cancers. Our cutting-edge science and robust clinical pipeline form the broadest PRAME franchise with the most PRAME indications and modalities, spanning TCR T-cell therapies and TCR bispecifics.",
+      "html": null
+    },
+    "source": {
+      "kind": "workday_inpage_fetch",
+      "raw": {
+        "externalPath": "/job/Tuebingen-Germany/Sample-Management-Specialist-_JR100774-1"
+      }
+    },
+    "postedAt": "Posted Today",
+    "scrapedAt": "2026-11-24T16:51:20.739Z",
+    "language": "en",
+    "locationParsed": {
+      "raw": "Tuebingen (Germany)",
+      "country": "Germany",
+      "region": null,
+      "city": "Tuebingen"
+    },
+    "locationConfidence": "medium",
+    "workplaceConfidence": "low"
   }
 ]
